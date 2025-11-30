@@ -12,9 +12,34 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ShoppingCart, User, LogOut, Package, Settings } from 'lucide-react';
 import { Role } from '@/types';
+import { useState, useEffect } from 'react';
+import { Badge } from '@/components/ui/badge';
 
 export function Navbar() {
   const { data: session } = useSession();
+  const [cartCount, setCartCount] = useState(0);
+
+  useEffect(() => {
+    // Update cart count on mount and when storage changes
+    const updateCartCount = () => {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const count = cart.reduce((total: number, item: any) => total + item.quantity, 0);
+      setCartCount(count);
+    };
+
+    updateCartCount();
+
+    // Listen for storage changes
+    window.addEventListener('storage', updateCartCount);
+    
+    // Custom event for cart updates within the same tab
+    window.addEventListener('cartUpdated', updateCartCount);
+
+    return () => {
+      window.removeEventListener('storage', updateCartCount);
+      window.removeEventListener('cartUpdated', updateCartCount);
+    };
+  }, []);
 
   return (
     <nav className="border-b bg-white sticky top-0 z-50">
@@ -27,7 +52,7 @@ export function Navbar() {
           <Link href="/products" className="hover:text-green-600 transition">
             Products
           </Link>
-          <Link href="/subscription" className="hover:text-green-600 transition">
+          <Link href="/subscriptions" className="hover:text-green-600 transition">
             Subscriptions
           </Link>
           {session && (
@@ -38,6 +63,19 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center space-x-4">
+          <Link href="/cart">
+            <Button variant="ghost" size="icon" className="relative">
+              <ShoppingCart className="h-5 w-5" />
+              {cartCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                >
+                  {cartCount}
+                </Badge>
+              )}
+            </Button>
+          </Link>
           {session ? (
             <>
               {session.user.role === Role.ADMIN && (

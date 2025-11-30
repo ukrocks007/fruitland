@@ -1,31 +1,95 @@
+'use client';
+
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/navbar';
-import { prisma } from '@/lib/prisma';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
-async function getProducts(category?: string) {
-  const where: any = { isAvailable: true };
-  
-  if (category && category !== 'all') {
-    where.category = category;
-  }
-  
-  return prisma.product.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-  });
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  category: string;
+  stock: number;
+  isAvailable: boolean;
+  isSeasonal: boolean;
 }
 
-export default async function ProductsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ category?: string }>;
-}) {
-  const params = await searchParams;
-  const products = await getProducts(params.category);
+export default function ProductsPage() {
+  const router = useRouter();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const categories = ['all', 'fresh', 'seasonal', 'organic', 'exotic'];
+
+  useEffect(() => {
+    // Get category from URL
+    const params = new URLSearchParams(window.location.search);
+    const category = params.get('category') || 'all';
+    setSelectedCategory(category);
+    fetchProducts(category);
+  }, []);
+
+  const fetchProducts = async (category?: string) => {
+    setLoading(true);
+    try {
+      const url = category && category !== 'all' 
+        ? `/api/products?category=${category}&available=true`
+        : '/api/products?available=true';
+      
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('Failed to load products');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCategoryClick = (cat: string) => {
+    setSelectedCategory(cat);
+    router.push(`/products?category=${cat}`);
+    fetchProducts(cat);
+  };
+
+  const addToCart = (product: Product) => {
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const existingItem = cart.find((item: any) => item.id === product.id);
+
+    if (existingItem) {
+      if (existingItem.quantity >= product.stock) {
+        toast.error('Cannot add more items than available in stock');
+        return;
+      }
+      existingItem.quantity += 1;
+    } else {
+      cart.push({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        quantity: 1,
+        stock: product.stock,
+      });
+    }
+
+    localStorage.setItem('cart', JSON.stringify(cart));
+    
+    // Dispatch custom event to update cart count
+    window.dispatchEvent(new Event('cartUpdated'));
+    
+    toast.success('Added to cart!');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -37,19 +101,23 @@ export default async function ProductsPage({
         {/* Category Filter */}
         <div className="flex flex-wrap gap-2 mb-8">
           {categories.map((cat) => (
-            <a key={cat} href={`/products?category=${cat}`}>
-              <Badge
-                variant={params.category === cat || (!params.category && cat === 'all') ? 'default' : 'outline'}
-                className="cursor-pointer capitalize px-4 py-2 hover:bg-green-600 hover:text-white"
-              >
-                {cat}
-              </Badge>
-            </a>
+            <Badge
+              key={cat}
+              variant={selectedCategory === cat ? 'default' : 'outline'}
+              className="cursor-pointer capitalize px-4 py-2 hover:bg-green-600 hover:text-white"
+              onClick={() => handleCategoryClick(cat)}
+            >
+              {cat}
+            </Badge>
           ))}
         </div>
 
         {/* Products Grid */}
-        {products.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-16">
+            <p className="text-gray-600">Loading products...</p>
+          </div>
+        ) : products.length > 0 ? (
           <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.map((product) => (
               <Card key={product.id} className="overflow-hidden hover:shadow-lg transition">
@@ -86,7 +154,13 @@ export default async function ProductsPage({
                   </p>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full">Add to Cart</Button>
+                  <Button 
+                    className="w-full" 
+                    onClick={() => addToCart(product)}
+                    disabled={product.stock === 0}
+                  >
+                    {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                  </Button>
                 </CardFooter>
               </Card>
             ))}
