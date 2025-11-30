@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
@@ -34,7 +34,7 @@ interface SubscriptionPackage {
   features: string;
 }
 
-export default function NewSubscriptionPage() {
+function NewSubscriptionContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -486,5 +486,20 @@ export default function NewSubscriptionPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function NewSubscriptionPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8 flex justify-center items-center">
+          <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+        </div>
+      </div>
+    }>
+      <NewSubscriptionContent />
+    </Suspense>
   );
 }
