@@ -1,15 +1,30 @@
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 
-// Initialize Razorpay instance
-export const razorpayInstance = new Razorpay({
-  key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || '',
-});
+// Lazy initialize Razorpay instance only when needed
+let razorpayInstanceCache: Razorpay | null = null;
+
+function getRazorpayInstance(): Razorpay {
+  if (!razorpayInstanceCache) {
+    const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+    if (!keyId || !keySecret) {
+      throw new Error('Razorpay credentials are not configured. Please set NEXT_PUBLIC_RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables.');
+    }
+
+    razorpayInstanceCache = new Razorpay({
+      key_id: keyId,
+      key_secret: keySecret,
+    });
+  }
+  return razorpayInstanceCache;
+}
 
 // Create Razorpay order
 export async function createRazorpayOrder(amount: number, receipt: string, notes?: Record<string, string>) {
   try {
+    const razorpayInstance = getRazorpayInstance();
     const options = {
       amount: amount * 100, // amount in paise
       currency: 'INR',
@@ -48,6 +63,7 @@ export function verifyRazorpaySignature(
 // Fetch payment details
 export async function fetchPaymentDetails(paymentId: string) {
   try {
+    const razorpayInstance = getRazorpayInstance();
     const payment = await razorpayInstance.payments.fetch(paymentId);
     return payment;
   } catch (error) {
@@ -59,6 +75,7 @@ export async function fetchPaymentDetails(paymentId: string) {
 // Initiate refund
 export async function initiateRefund(paymentId: string, amount?: number) {
   try {
+    const razorpayInstance = getRazorpayInstance();
     const refund = await razorpayInstance.payments.refund(paymentId, {
       amount: amount ? amount * 100 : undefined,
     });
