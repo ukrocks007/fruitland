@@ -110,7 +110,7 @@ async function main() {
       name: 'Watermelon',
       description: 'Sweet and refreshing watermelon',
       price: 80,
-      image: 'https://images.unsplash.com/photo-1587049352846-4a222e784578?w=400',
+      image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400',
       category: 'seasonal',
       stock: 60,
       isAvailable: true,
