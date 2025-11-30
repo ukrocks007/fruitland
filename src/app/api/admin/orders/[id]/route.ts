@@ -7,7 +7,7 @@ import { Role } from '@/types';
 // PATCH - Update order status
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -16,6 +16,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const { status, paymentStatus } = await request.json();
 
     const updateData: any = {};
@@ -23,7 +24,7 @@ export async function PATCH(
     if (paymentStatus) updateData.paymentStatus = paymentStatus;
 
     const order = await prisma.order.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
     });
 
@@ -37,7 +38,7 @@ export async function PATCH(
 // DELETE - Delete order
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -46,9 +47,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     // Delete the order (OrderItems will be cascade deleted)
     const deletedOrder = await prisma.order.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ 

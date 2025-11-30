@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 // PATCH /api/cart/[id] - Update cart item quantity
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,6 +14,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
     });
@@ -31,7 +32,7 @@ export async function PATCH(
     // Verify cart item belongs to user
     const cartItem = await prisma.cartItem.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: user.id,
       },
       include: { product: true },
@@ -50,7 +51,7 @@ export async function PATCH(
     }
 
     const updatedItem = await prisma.cartItem.update({
-      where: { id: params.id },
+      where: { id },
       data: { quantity },
       include: { product: true },
     });
@@ -65,7 +66,7 @@ export async function PATCH(
 // DELETE /api/cart/[id] - Remove item from cart
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -73,6 +74,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
     });
@@ -84,7 +86,7 @@ export async function DELETE(
     // Verify cart item belongs to user
     const cartItem = await prisma.cartItem.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: user.id,
       },
     });
@@ -94,7 +96,7 @@ export async function DELETE(
     }
 
     await prisma.cartItem.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ message: 'Item removed from cart' });

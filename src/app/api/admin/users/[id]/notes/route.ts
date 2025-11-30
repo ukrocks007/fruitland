@@ -6,7 +6,7 @@ import { Role } from '@/types';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,8 +15,9 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const notes = await prisma.customerNote.findMany({
-      where: { userId: params.id },
+      where: { userId: id },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -32,7 +33,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -41,6 +42,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const body = await request.json();
     const { note } = body;
 
@@ -50,7 +52,7 @@ export async function POST(
 
     const customerNote = await prisma.customerNote.create({
       data: {
-        userId: params.id,
+        userId: id,
         createdBy: session.user.id,
         note,
       },
