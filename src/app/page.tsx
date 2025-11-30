@@ -1,65 +1,137 @@
-import Image from "next/image";
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Navbar } from '@/components/navbar';
+import { ArrowRight, ShoppingBag, Package, Clock, Shield } from 'lucide-react';
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
+      <Navbar />
+      
+      {/* Hero Section */}
+      <section className="container mx-auto px-4 py-20 text-center">
+        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+          Fresh Fruits Delivered
+          <span className="text-green-600"> to Your Door</span>
+        </h1>
+        <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+          Subscribe to seasonal, organic, and exotic fruits. Enjoy hassle-free deliveries
+          with flexible subscription plans tailored to your needs.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Link href="/products">
+            <Button size="lg" className="text-lg px-8">
+              Shop Now
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
+          <Link href="/subscription">
+            <Button size="lg" variant="outline" className="text-lg px-8">
+              Start Subscription
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="grid md:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader>
+              <ShoppingBag className="h-10 w-10 text-green-600 mb-2" />
+              <CardTitle>Fresh Quality</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">
+                Hand-picked fresh fruits delivered at peak ripeness
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <Package className="h-10 w-10 text-green-600 mb-2" />
+              <CardTitle>Flexible Plans</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">
+                Weekly, bi-weekly, or monthly subscriptions to fit your lifestyle
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <Clock className="h-10 w-10 text-green-600 mb-2" />
+              <CardTitle>Easy Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">
+                Pause, skip, or cancel anytime with just a few clicks
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <Shield className="h-10 w-10 text-green-600 mb-2" />
+              <CardTitle>Secure Payments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">
+                Safe and secure payment processing via Razorpay
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Categories */}
+      <section className="container mx-auto px-4 py-16">
+        <h2 className="text-3xl font-bold text-center mb-12">Our Categories</h2>
+        <div className="grid md:grid-cols-4 gap-6">
+          {[
+            { name: 'Fresh', emoji: '🍊', desc: 'Daily fresh picks' },
+            { name: 'Seasonal', emoji: '🍓', desc: 'Best of the season' },
+            { name: 'Organic', emoji: '🥑', desc: 'Certified organic' },
+            { name: 'Exotic', emoji: '🥭', desc: 'Rare & exotic varieties' },
+          ].map((category) => (
+            <Link key={category.name} href={`/products?category=${category.name.toLowerCase()}`}>
+              <Card className="hover:shadow-lg transition cursor-pointer">
+                <CardHeader className="text-center">
+                  <div className="text-5xl mb-2">{category.emoji}</div>
+                  <CardTitle>{category.name}</CardTitle>
+                  <CardDescription>{category.desc}</CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="bg-green-600 text-white py-16">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
+          <p className="text-xl mb-8">
+            Join thousands of happy customers enjoying fresh fruits every week
           </p>
+          <Link href="/auth/signup">
+            <Button size="lg" variant="secondary" className="text-lg px-8">
+              Create Your Account
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-8">
+        <div className="container mx-auto px-4 text-center">
+          <p>&copy; 2025 Fruitland. All rights reserved.</p>
         </div>
-      </main>
+      </footer>
     </div>
   );
 }
