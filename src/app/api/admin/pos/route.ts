@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate order number for POS
-    const orderNumber = `POS-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    const orderNumber = `POS-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
     // Get or create a POS address for in-store sales
     let posAddress = await prisma.address.findFirst({

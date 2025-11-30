@@ -181,14 +181,13 @@ export default function AdminPOSPage() {
         
         const newQuantity = item.quantity + delta;
         
-        if (newQuantity <= 0) return item;
         if (newQuantity > item.product.stock) {
           toast.error(`Only ${item.product.stock} items available`);
           return item;
         }
         
         return { ...item, quantity: newQuantity };
-      });
+      }).filter(item => item.quantity > 0);
     });
   }, []);
 
