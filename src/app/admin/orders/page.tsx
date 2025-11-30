@@ -136,6 +136,29 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const updatePaymentStatus = async (orderId: string, paymentStatus: string) => {
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentStatus }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success('Payment status updated');
+        fetchOrders();
+      } else {
+        console.error('Update error:', data);
+        toast.error(data.error || 'Failed to update payment status');
+      }
+    } catch (error) {
+      console.error('Update exception:', error);
+      toast.error('Failed to update payment status');
+    }
+  };
+
   const deleteOrder = async (orderId: string) => {
     if (!confirm('Are you sure you want to delete this order?')) return;
 
@@ -294,9 +317,22 @@ export default function AdminOrdersPage() {
                           </Select>
                         </TableCell>
                         <TableCell>
-                          <Badge className={getPaymentColor(order.paymentStatus)}>
-                            {order.paymentStatus}
-                          </Badge>
+                          <Select
+                            value={order.paymentStatus}
+                            onValueChange={(value) => updatePaymentStatus(order.id, value)}
+                          >
+                            <SelectTrigger className="w-32">
+                              <Badge className={getPaymentColor(order.paymentStatus)}>
+                                {order.paymentStatus}
+                              </Badge>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="PENDING">Pending</SelectItem>
+                              <SelectItem value="PAID">Paid</SelectItem>
+                              <SelectItem value="FAILED">Failed</SelectItem>
+                              <SelectItem value="REFUNDED">Refunded</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                         <TableCell>
                           {new Date(order.createdAt).toLocaleDateString()}
