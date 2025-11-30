@@ -62,33 +62,30 @@ export default function ProductsPage() {
     fetchProducts(cat);
   };
 
-  const addToCart = (product: Product) => {
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const existingItem = cart.find((item: any) => item.id === product.id);
+  const addToCart = async (product: Product) => {
+    try {
+      const res = await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id,
+          quantity: 1,
+        }),
+      });
 
-    if (existingItem) {
-      if (existingItem.quantity >= product.stock) {
-        toast.error('Cannot add more items than available in stock');
+      if (!res.ok) {
+        const error = await res.json();
+        toast.error(error.error || 'Failed to add to cart');
         return;
       }
-      existingItem.quantity += 1;
-    } else {
-      cart.push({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        quantity: 1,
-        stock: product.stock,
-      });
-    }
 
-    localStorage.setItem('cart', JSON.stringify(cart));
-    
-    // Dispatch custom event to update cart count
-    window.dispatchEvent(new Event('cartUpdated'));
-    
-    toast.success('Added to cart!');
+      // Dispatch custom event to update cart count
+      window.dispatchEvent(new Event('cartUpdated'));
+      toast.success('Added to cart!');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Please sign in to add items to cart');
+    }
   };
 
   return (

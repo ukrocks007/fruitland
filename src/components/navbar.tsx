@@ -16,30 +16,37 @@ import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 
 export function Navbar() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    // Update cart count on mount and when storage changes
-    const updateCartCount = () => {
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      const count = cart.reduce((total: number, item: any) => total + item.quantity, 0);
-      setCartCount(count);
+    // Update cart count on mount and when changes occur
+    const updateCartCount = async () => {
+      if (status === 'authenticated') {
+        try {
+          const res = await fetch('/api/cart');
+          if (res.ok) {
+            const cart = await res.json();
+            const count = cart.reduce((total: number, item: any) => total + item.quantity, 0);
+            setCartCount(count);
+          }
+        } catch (error) {
+          console.error('Error fetching cart count:', error);
+        }
+      } else {
+        setCartCount(0);
+      }
     };
 
     updateCartCount();
 
-    // Listen for storage changes
-    window.addEventListener('storage', updateCartCount);
-    
-    // Custom event for cart updates within the same tab
+    // Custom event for cart updates
     window.addEventListener('cartUpdated', updateCartCount);
 
     return () => {
-      window.removeEventListener('storage', updateCartCount);
       window.removeEventListener('cartUpdated', updateCartCount);
     };
-  }, []);
+  }, [status]);
 
   return (
     <nav className="border-b bg-white sticky top-0 z-50">

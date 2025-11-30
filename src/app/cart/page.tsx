@@ -8,89 +8,141 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Minus, Plus, Trash2 } from 'lucide-react';
+import { Minus, Plus, Trash2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 
 interface CartItem {
   id: string;
-  name: string;
-  price: number;
-  image: string;
   quantity: number;
-  stock: number;
+  product: {
+    id: string;
+    name: string;
+    price: number;
+    image: string;
+    stock: number;
+  };
 }
 
 export default function CartPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load cart from localStorage
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin?callbackUrl=/cart');
+      return;
     }
-  }, []);
+    
+    if (status === 'authenticated') {
+      fetchCart();
+    }
+  }, [status, router]);
 
-  const updateCart = (items: CartItem[]) => {
-    setCartItems(items);
-    localStorage.setItem('cart', JSON.stringify(items));
-    window.dispatchEvent(new Event('cartUpdated'));
+  const fetchCart = async () => {
+    try {
+      const res = await fetch('/api/cart');
+      if (res.ok) {
+        const data = await res.json();
+        setCartItems(data);
+      }
+    } catch (error) {
+      console.error('Error fetching cart:', error);
+      toast.error('Failed to load cart');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateQuantity = (id: string, newQuantity: number) => {
-    const item = cartItems.find(i => i.id === id);
-    if (!item) return;
-
+  const updateQuantity = async (id: string, newQuantity: number) => {
     if (newQuantity < 1) {
       removeItem(id);
       return;
     }
 
-    if (newQuantity > item.stock) {
-      toast.error(`Only ${item.stock} items available in stock`);
-      return;
+    try {
+      const res = await fetch(`/api/cart/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: newQuantity }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        toast.error(error.error || 'Failed to update quantity');
+        return;
+      }
+
+      const updatedItem = await res.json();
+      setCartItems(cartItems.map(item => 
+        item.id === id ? updatedItem : item
+      ));
+      window.dispatchEvent(new Event('cartUpdated'));
+    } catch (error) {
+      toast.error('Failed to update quantity');
     }
-
-    const updatedItems = cartItems.map(item =>
-      item.id === id ? { ...item, quantity: newQuantity } : item
-    );
-    updateCart(updatedItems);
   };
 
-  const removeItem = (id: string) => {
-    const updatedItems = cartItems.filter(item => item.id !== id);
-    updateCart(updatedItems);
-    toast.success('Item removed from cart');
+  const removeItem = async (id: string) => {
+    try {
+      const res = await fetch(`/api/cart/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        toast.error('Failed to remove item');
+        return;
+      }
+
+      setCartItems(cartItems.filter(item => item.id !== id));
+      window.dispatchEvent(new Event('cartUpdated'));
+      toast.success('Item removed from cart');
+    } catch (error) {
+      toast.error('Failed to remove item');
+    }
   };
 
-  const clearCart = () => {
-    updateCart([]);
-    toast.success('Cart cleared');
+  const clearCart = async () => {
+    try {
+      const res = await fetch('/api/cart', {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        toast.error('Failed to clear cart');
+        return;
+      }
+
+      setCartItems([]);
+      window.dispatchEvent(new Event('cartUpdated'));
+      toast.success('Cart cleared');
+    } catch (error) {
+      toast.error('Failed to clear cart');
+    }
   };
 
   const calculateTotal = () => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return cartItems.reduce((total, item) => total + (item.product.price * item.quantity), 0);
   };
 
   const handleCheckout = () => {
-    if (!session) {
-      toast.error('Please sign in to checkout');
-      router.push('/auth/signin');
-      return;
-    }
-
     if (cartItems.length === 0) {
       toast.error('Your cart is empty');
       return;
     }
 
-    // Store cart for checkout
-    localStorage.setItem('checkoutCart', JSON.stringify(cartItems));
     router.push('/checkout');
   };
+
+  if (loading || status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -114,10 +166,10 @@ export default function CartPage() {
                 <Card key={item.id}>
                   <CardContent className="p-4">
                     <div className="flex gap-4">
-                      <div className="relative h-24 w-24 flex-shrink-0">
+                      <div className="relative h-24 w-24 shrink-0">
                         <Image
-                          src={item.image}
-                          alt={item.name}
+                          src={item.product.image}
+                          alt={item.product.name}
                           fill
                           className="object-cover rounded"
                         />
@@ -125,7 +177,7 @@ export default function CartPage() {
                       
                       <div className="flex-1">
                         <div className="flex justify-between mb-2">
-                          <h3 className="font-semibold text-lg">{item.name}</h3>
+                          <h3 className="font-semibold text-lg">{item.product.name}</h3>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -136,7 +188,7 @@ export default function CartPage() {
                         </div>
                         
                         <p className="text-green-600 font-semibold mb-2">
-                          ₹{item.price}
+                          ₹{item.product.price}
                         </p>
                         
                         <div className="flex items-center justify-between">
@@ -155,7 +207,7 @@ export default function CartPage() {
                               onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
                               className="w-16 h-8 text-center"
                               min={1}
-                              max={item.stock}
+                              max={item.product.stock}
                             />
                             <Button
                               variant="outline"
@@ -168,13 +220,13 @@ export default function CartPage() {
                           </div>
                           
                           <p className="font-bold">
-                            ₹{(item.price * item.quantity).toFixed(2)}
+                            ₹{(item.product.price * item.quantity).toFixed(2)}
                           </p>
                         </div>
                         
-                        {item.stock <= 10 && (
+                        {item.product.stock <= 10 && (
                           <Badge variant="outline" className="mt-2 text-orange-600">
-                            Only {item.stock} left in stock
+                            Only {item.product.stock} left in stock
                           </Badge>
                         )}
                       </div>
