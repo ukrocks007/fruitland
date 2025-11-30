@@ -53,7 +53,7 @@ export default async function AdminDashboardPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <div className="grid grid-cols-3 sm:flex gap-2">
+          <div className="grid grid-cols-2 sm:flex gap-2">
             <Button variant="outline" asChild className="justify-start sm:justify-center">
               <Link href="/admin/orders">
                 <ShoppingCart className="w-4 h-4 mr-2" />
