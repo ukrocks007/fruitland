@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(subscriptions);
+    return NextResponse.json({ subscriptions });
   } catch (error) {
     console.error('Error fetching subscriptions:', error);
     return NextResponse.json(

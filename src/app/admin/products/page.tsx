@@ -34,8 +34,8 @@ interface Product {
   price: number;
   category: string;
   stock: number;
-  imageUrl: string | null;
-  available: boolean;
+  image: string | null;
+  isAvailable: boolean;
 }
 
 interface ProductFormData {
@@ -44,8 +44,8 @@ interface ProductFormData {
   price: string;
   category: string;
   stock: string;
-  imageUrl: string;
-  available: boolean;
+  image: string;
+  isAvailable: boolean;
 }
 
 export default function AdminProductsPage() {
@@ -64,8 +64,8 @@ export default function AdminProductsPage() {
     price: '',
     category: '',
     stock: '',
-    imageUrl: '',
-    available: true,
+    image: '',
+    isAvailable: true,
   });
 
   useEffect(() => {
@@ -92,6 +92,11 @@ export default function AdminProductsPage() {
   };
 
   const filterProducts = () => {
+    if (!products || !Array.isArray(products)) {
+      setFilteredProducts([]);
+      return;
+    }
+    
     let filtered = [...products];
 
     if (searchQuery) {
@@ -109,6 +114,7 @@ export default function AdminProductsPage() {
   };
 
   const getCategories = () => {
+    if (!products || products.length === 0) return [];
     const categories = [...new Set(products.map(p => p.category))];
     return categories;
   };
@@ -121,8 +127,8 @@ export default function AdminProductsPage() {
       price: '',
       category: '',
       stock: '',
-      imageUrl: '',
-      available: true,
+      image: '',
+      isAvailable: true,
     });
     setDialogOpen(true);
   };
@@ -135,8 +141,8 @@ export default function AdminProductsPage() {
       price: product.price.toString(),
       category: product.category,
       stock: product.stock.toString(),
-      imageUrl: product.imageUrl || '',
-      available: product.available,
+      image: product.image || '',
+      isAvailable: product.isAvailable,
     });
     setDialogOpen(true);
   };
@@ -154,12 +160,12 @@ export default function AdminProductsPage() {
 
       const productData = {
         name: formData.name,
-        description: formData.description || null,
+        description: formData.description || '',
         price: parseFloat(formData.price),
         category: formData.category,
         stock: parseInt(formData.stock),
-        imageUrl: formData.imageUrl || null,
-        available: formData.available,
+        image: formData.image || '',
+        isAvailable: formData.isAvailable,
       };
 
       if (editingProduct) {
@@ -217,7 +223,7 @@ export default function AdminProductsPage() {
       const response = await fetch(`/api/admin/products/${product.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ available: !product.available }),
+        body: JSON.stringify({ isAvailable: !product.isAvailable }),
       });
 
       if (!response.ok) throw new Error('Failed to update availability');
@@ -330,11 +336,11 @@ export default function AdminProductsPage() {
                         </TableCell>
                         <TableCell>
                           <Button
-                            variant={product.available ? "default" : "outline"}
+                            variant={product.isAvailable ? "default" : "outline"}
                             size="sm"
                             onClick={() => toggleAvailability(product)}
                           >
-                            {product.available ? 'Available' : 'Unavailable'}
+                            {product.isAvailable ? 'Available' : 'Unavailable'}
                           </Button>
                         </TableCell>
                         <TableCell className="text-right">
@@ -434,24 +440,55 @@ export default function AdminProductsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="imageUrl">Image URL</Label>
+              <Label htmlFor="image">Image URL</Label>
               <Input
-                id="imageUrl"
+                id="image"
                 type="url"
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                placeholder="https://example.com/image.jpg"
+                value={formData.image}
+                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
               />
+              {formData.image && (
+                <div className="mt-2">
+                  <Label className="text-sm text-gray-600">Image Preview:</Label>
+                  <div className="mt-2 border rounded-lg p-4 bg-gray-50 flex justify-center">
+                    <img
+                      src={formData.image}
+                      alt="Product preview"
+                      className="max-h-48 object-contain rounded"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        const parent = (e.target as HTMLImageElement).parentElement;
+                        if (parent && !parent.querySelector('.error-text')) {
+                          const errorText = document.createElement('p');
+                          errorText.className = 'error-text text-red-500 text-sm';
+                          errorText.textContent = 'Failed to load image. Please check the URL.';
+                          parent.appendChild(errorText);
+                        }
+                      }}
+                      onLoad={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'block';
+                        const parent = (e.target as HTMLImageElement).parentElement;
+                        const errorText = parent?.querySelector('.error-text');
+                        if (errorText) {
+                          errorText.remove();
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
               <input
-                id="available"
+                id="isAvailable"
                 type="checkbox"
-                checked={formData.available}
-                onChange={(e) => setFormData({ ...formData, available: e.target.checked })}
+                checked={formData.isAvailable}
+                onChange={(e) => setFormData({ ...formData, isAvailable: e.target.checked })}
                 className="h-4 w-4"
               />
-              <Label htmlFor="available">Available for purchase</Label>
+              <Label htmlFor="isAvailable">Available for purchase</Label>
             </div>
 
             <div className="flex justify-end gap-2 pt-4">

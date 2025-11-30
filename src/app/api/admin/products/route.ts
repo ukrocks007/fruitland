@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, price, category, stock, imageUrl, available } = body;
+    const { name, description, price, category, stock, image, isAvailable } = body;
 
     if (!name || !price || !category || stock === undefined) {
       return NextResponse.json(
@@ -25,12 +25,12 @@ export async function POST(request: NextRequest) {
     const product = await prisma.product.create({
       data: {
         name,
-        description: description || null,
+        description: description || '',
         price: parseFloat(price),
         category,
         stock: parseInt(stock),
-        imageUrl: imageUrl || null,
-        available: available !== undefined ? available : true,
+        image: image || '',
+        isAvailable: isAvailable !== undefined ? isAvailable : true,
       },
     });
 

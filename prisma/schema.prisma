@@ -142,11 +142,28 @@ model OrderItem {
   product Product @relation(fields: [productId], references: [id])
 }
 
+// Subscription Package model - Admin defined packages
+model SubscriptionPackage {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  frequency   String // DAILY, WEEKLY, MONTHLY
+  price       Float
+  imageUrl    String?
+  features    String // JSON array of features
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
 // Subscription model
 model Subscription {
   id                String             @id @default(cuid())
   userId            String
   addressId         String
+  packageId         String?
   subscriptionNumber String           @unique
   frequency         String // WEEKLY, BIWEEKLY, MONTHLY
   preference        String // MIXED, SEASONAL, CUSTOM
@@ -162,6 +179,7 @@ model Subscription {
 
   user    User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   address Address                @relation(fields: [addressId], references: [id])
+  package SubscriptionPackage?   @relation(fields: [packageId], references: [id])
   items   SubscriptionItem[]
   orders  Order[]
   skips   SubscriptionSkip[]

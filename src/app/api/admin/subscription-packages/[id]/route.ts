@@ -20,22 +20,22 @@ export async function PATCH(
 
     if (body.name !== undefined) updateData.name = body.name;
     if (body.description !== undefined) updateData.description = body.description;
+    if (body.frequency !== undefined) updateData.frequency = body.frequency;
     if (body.price !== undefined) updateData.price = parseFloat(body.price);
-    if (body.category !== undefined) updateData.category = body.category;
-    if (body.stock !== undefined) updateData.stock = parseInt(body.stock);
-    if (body.image !== undefined) updateData.image = body.image;
-    if (body.isAvailable !== undefined) updateData.isAvailable = body.isAvailable;
+    if (body.imageUrl !== undefined) updateData.imageUrl = body.imageUrl;
+    if (body.features !== undefined) updateData.features = body.features;
+    if (body.isActive !== undefined) updateData.isActive = body.isActive;
 
-    const product = await prisma.product.update({
+    const subscriptionPackage = await prisma.subscriptionPackage.update({
       where: { id: params.id },
       data: updateData,
     });
 
-    return NextResponse.json({ product });
+    return NextResponse.json({ package: subscriptionPackage });
   } catch (error) {
-    console.error('Error updating product:', error);
+    console.error('Error updating subscription package:', error);
     return NextResponse.json(
-      { error: 'Failed to update product' },
+      { error: 'Failed to update subscription package' },
       { status: 500 }
     );
   }
@@ -52,15 +52,15 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await prisma.product.delete({
+    await prisma.subscriptionPackage.delete({
       where: { id: params.id },
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting product:', error);
+    console.error('Error deleting subscription package:', error);
     return NextResponse.json(
-      { error: 'Failed to delete product' },
+      { error: 'Failed to delete subscription package' },
       { status: 500 }
     );
   }

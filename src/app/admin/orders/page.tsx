@@ -121,13 +121,17 @@ export default function AdminOrdersPage() {
         body: JSON.stringify({ status }),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
         toast.success('Order status updated');
         fetchOrders();
       } else {
-        toast.error('Failed to update status');
+        console.error('Update error:', data);
+        toast.error(data.error || 'Failed to update status');
       }
     } catch (error) {
+      console.error('Update exception:', error);
       toast.error('Failed to update status');
     }
   };

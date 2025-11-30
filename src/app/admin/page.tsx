@@ -67,6 +67,12 @@ export default async function AdminDashboardPage() {
               </Link>
             </Button>
             <Button variant="outline" asChild>
+              <Link href="/admin/subscription-packages">
+                <Package className="w-4 h-4 mr-2" />
+                Packages
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
               <Link href="/admin/users">
                 <Users className="w-4 h-4 mr-2" />
                 Users
