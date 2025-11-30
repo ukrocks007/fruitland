@@ -3,8 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Navbar } from '@/components/navbar';
 import { ArrowRight, ShoppingBag, Package, Clock, Shield } from 'lucide-react';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await getServerSession(authOptions);
+  
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
       <Navbar />
@@ -110,21 +114,23 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="bg-green-600 text-white py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
-          <p className="text-xl mb-8">
-            Join thousands of happy customers enjoying fresh fruits every week
-          </p>
-          <Link href="/auth/signup">
-            <Button size="lg" variant="secondary" className="text-lg px-8">
-              Create Your Account
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </Link>
-        </div>
-      </section>
+      {/* CTA Section - Only show for non-logged-in users */}
+      {!session && (
+        <section className="bg-green-600 text-white py-16">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
+            <p className="text-xl mb-8">
+              Join thousands of happy customers enjoying fresh fruits every week
+            </p>
+            <Link href="/auth/signup">
+              <Button size="lg" variant="secondary" className="text-lg px-8">
+                Create Your Account
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-8">

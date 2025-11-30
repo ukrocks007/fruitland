@@ -46,7 +46,7 @@ export default function ProductsPage() {
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        setProducts(data);
+        setProducts(data.products || []);
       }
     } catch (error) {
       console.error('Error fetching products:', error);
