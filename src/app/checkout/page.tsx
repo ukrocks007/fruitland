@@ -27,11 +27,13 @@ interface CartItem {
 
 interface Address {
   id: string;
-  street: string;
+  name: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2?: string | null;
   city: string;
   state: string;
-  zipCode: string;
-  country: string;
+  pincode: string;
   isDefault: boolean;
 }
 
@@ -47,17 +49,28 @@ export default function CheckoutPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
+  
+  // Payment method configuration
+  const enableOnlinePayment = process.env.NEXT_PUBLIC_ENABLE_ONLINE_PAYMENT === 'true';
+  const enableCOD = process.env.NEXT_PUBLIC_ENABLE_COD === 'true';
+  
+  // Set default payment method based on what's enabled
+  const defaultPaymentMethod = enableOnlinePayment ? 'online' : enableCOD ? 'cod' : 'online';
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'online' | 'cod'>(defaultPaymentMethod);
+  
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
   
   // New address form state
   const [newAddress, setNewAddress] = useState({
-    street: '',
+    name: '',
+    phone: '',
+    addressLine1: '',
+    addressLine2: '',
     city: '',
     state: '',
-    zipCode: '',
-    country: 'India',
+    pincode: '',
     isDefault: false
   });
 
@@ -134,11 +147,13 @@ export default function CheckoutPage() {
       setSelectedAddressId(address.id);
       setIsAddressDialogOpen(false);
       setNewAddress({
-        street: '',
+        name: '',
+        phone: '',
+        addressLine1: '',
+        addressLine2: '',
         city: '',
         state: '',
-        zipCode: '',
-        country: 'India',
+        pincode: '',
         isDefault: false
       });
       toast.success('Address added successfully');
@@ -151,7 +166,50 @@ export default function CheckoutPage() {
     return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
-  const handlePayment = async () => {
+  const handleCODOrder = async () => {
+    if (!selectedAddressId) {
+      toast.error('Please select a delivery address');
+      return;
+    }
+
+    setProcessing(true);
+
+    try {
+      const orderRes = await fetch('/api/payment/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: cartItems.map(item => ({
+            productId: item.id,
+            quantity: item.quantity
+          })),
+          addressId: selectedAddressId,
+          paymentMethod: 'COD'
+        }),
+      });
+
+      if (!orderRes.ok) {
+        const error = await orderRes.json();
+        throw new Error(error.error || 'Failed to create order');
+      }
+
+      // Clear cart from database
+      await fetch('/api/cart', { method: 'DELETE' });
+      
+      // Dispatch event to update navbar
+      window.dispatchEvent(new Event('cartUpdated'));
+      
+      toast.success('Order placed successfully! Pay on delivery.');
+      router.push('/orders');
+    } catch (error: any) {
+      console.error('Order error:', error);
+      toast.error(error.message || 'Failed to place order');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleOnlinePayment = async () => {
     if (!selectedAddressId) {
       toast.error('Please select a delivery address');
       return;
@@ -169,7 +227,8 @@ export default function CheckoutPage() {
             productId: item.id,
             quantity: item.quantity
           })),
-          addressId: selectedAddressId
+          addressId: selectedAddressId,
+          paymentMethod: 'ONLINE'
         }),
       });
 
@@ -236,6 +295,14 @@ export default function CheckoutPage() {
     }
   };
 
+  const handlePayment = async () => {
+    if (selectedPaymentMethod === 'cod') {
+      await handleCODOrder();
+    } else {
+      await handleOnlinePayment();
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -273,13 +340,41 @@ export default function CheckoutPage() {
                       <DialogTitle>Add New Address</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleAddAddress} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="name">Full Name</Label>
+                          <Input
+                            id="name"
+                            value={newAddress.name}
+                            onChange={(e) => setNewAddress({ ...newAddress, name: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="phone">Phone</Label>
+                          <Input
+                            id="phone"
+                            value={newAddress.phone}
+                            onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
+                            required
+                          />
+                        </div>
+                      </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="street">Street Address</Label>
+                        <Label htmlFor="addressLine1">Address Line 1</Label>
                         <Input
-                          id="street"
-                          value={newAddress.street}
-                          onChange={(e) => setNewAddress({ ...newAddress, street: e.target.value })}
+                          id="addressLine1"
+                          value={newAddress.addressLine1}
+                          onChange={(e) => setNewAddress({ ...newAddress, addressLine1: e.target.value })}
                           required
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="addressLine2">Address Line 2 (Optional)</Label>
+                        <Input
+                          id="addressLine2"
+                          value={newAddress.addressLine2}
+                          onChange={(e) => setNewAddress({ ...newAddress, addressLine2: e.target.value })}
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
@@ -302,24 +397,14 @@ export default function CheckoutPage() {
                           />
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                          <Label htmlFor="zipCode">ZIP Code</Label>
-                          <Input
-                            id="zipCode"
-                            value={newAddress.zipCode}
-                            onChange={(e) => setNewAddress({ ...newAddress, zipCode: e.target.value })}
-                            required
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="country">Country</Label>
-                          <Input
-                            id="country"
-                            value={newAddress.country}
-                            disabled
-                          />
-                        </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="pincode">Pincode</Label>
+                        <Input
+                          id="pincode"
+                          value={newAddress.pincode}
+                          onChange={(e) => setNewAddress({ ...newAddress, pincode: e.target.value })}
+                          required
+                        />
                       </div>
                       <Button type="submit" className="w-full">Save Address</Button>
                     </form>
@@ -335,15 +420,19 @@ export default function CheckoutPage() {
                           <RadioGroupItem value={address.id} id={address.id} className="mt-1" />
                           <Label htmlFor={address.id} className="grid gap-1 cursor-pointer flex-1">
                             <span className="font-semibold">
-                              {address.street}
+                              {address.name}
                               {address.isDefault && (
                                 <Badge variant="secondary" className="ml-2">Default</Badge>
                               )}
                             </span>
                             <span className="text-sm text-gray-500">
-                              {address.city}, {address.state} {address.zipCode}
+                              {address.addressLine1}
+                              {address.addressLine2 && `, ${address.addressLine2}`}
                             </span>
-                            <span className="text-sm text-gray-500">{address.country}</span>
+                            <span className="text-sm text-gray-500">
+                              {address.city}, {address.state} - {address.pincode}
+                            </span>
+                            <span className="text-sm text-gray-500">Phone: {address.phone}</span>
                           </Label>
                         </div>
                       ))}
@@ -354,6 +443,41 @@ export default function CheckoutPage() {
                     No addresses found. Please add a delivery address.
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Payment Method Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment Method</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RadioGroup value={selectedPaymentMethod} onValueChange={(value) => setSelectedPaymentMethod(value as 'online' | 'cod')}>
+                  <div className="grid gap-4">
+                    {enableOnlinePayment && (
+                      <div className="flex items-center space-x-2 border p-4 rounded-lg">
+                        <RadioGroupItem value="online" id="online" />
+                        <Label htmlFor="online" className="flex items-center gap-2 cursor-pointer flex-1">
+                          <div className="grid gap-1">
+                            <span className="font-semibold">Online Payment</span>
+                            <span className="text-sm text-gray-500">Pay securely using Cards, UPI, Net Banking, Wallets</span>
+                          </div>
+                        </Label>
+                      </div>
+                    )}
+                    {enableCOD && (
+                      <div className="flex items-center space-x-2 border p-4 rounded-lg">
+                        <RadioGroupItem value="cod" id="cod" />
+                        <Label htmlFor="cod" className="flex items-center gap-2 cursor-pointer flex-1">
+                          <div className="grid gap-1">
+                            <span className="font-semibold">Cash on Delivery (COD)</span>
+                            <span className="text-sm text-gray-500">Pay when you receive the order</span>
+                          </div>
+                        </Label>
+                      </div>
+                    )}
+                  </div>
+                </RadioGroup>
               </CardContent>
             </Card>
 
@@ -416,13 +540,15 @@ export default function CheckoutPage() {
                   className="w-full" 
                   size="lg" 
                   onClick={handlePayment}
-                  disabled={processing || addresses.length === 0}
+                  disabled={processing || addresses.length === 0 || (!enableOnlinePayment && !enableCOD)}
                 >
                   {processing ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Processing...
                     </>
+                  ) : selectedPaymentMethod === 'cod' ? (
+                    'Place Order (COD)'
                   ) : (
                     'Pay Now'
                   )}

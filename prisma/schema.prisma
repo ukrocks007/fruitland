@@ -28,6 +28,8 @@ model User {
   subscriptions Subscription[]
   addresses     Address[]
   cartItems     CartItem[]
+  customerNotes CustomerNote[] @relation("CustomerNotes")
+  createdNotes  CustomerNote[] @relation("CreatedNotes")
 }
 
 // NextAuth models
@@ -198,4 +200,30 @@ model CartItem {
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
+}
+
+// Config model for dynamic settings
+model Config {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  type      String   @default("string") // string, boolean, number, json
+  category  String   @default("general") // general, payment, email, etc
+  label     String
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Customer notes for CRM
+model CustomerNote {
+  id        String   @id @default(cuid())
+  userId    String
+  note      String
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User @relation("CustomerNotes", fields: [userId], references: [id], onDelete: Cascade)
+  creator   User @relation("CreatedNotes", fields: [createdBy], references: [id])
 }

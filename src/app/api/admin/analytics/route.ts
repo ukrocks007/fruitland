@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Role } from '@/types';
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 
 export async function GET(request: NextRequest) {
   try {
@@ -125,6 +125,94 @@ export async function GET(request: NextRequest) {
       })
     );
 
+    // Revenue by month (last 6 months)
+    const revenueByMonth = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = startOfMonth(subMonths(now, i));
+      const monthEnd = endOfMonth(subMonths(now, i));
+      
+      const orders = await prisma.order.findMany({
+        where: {
+          createdAt: {
+            gte: monthStart,
+            lte: monthEnd,
+          },
+          paymentStatus: 'PAID',
+        },
+        select: { totalAmount: true },
+      });
+
+      const revenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+      
+      revenueByMonth.push({
+        month: format(monthStart, 'MMM yyyy'),
+        revenue,
+      });
+    }
+
+    // Orders by status
+    const ordersByStatus = await prisma.order.groupBy({
+      by: ['status'],
+      _count: true,
+    });
+
+    const orderStatusData = ordersByStatus.map(item => ({
+      status: item.status,
+      count: item._count,
+    }));
+
+    // Subscription growth (last 6 months)
+    const subscriptionGrowth = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = startOfMonth(subMonths(now, i));
+      const monthEnd = endOfMonth(subMonths(now, i));
+      
+      const count = await prisma.subscription.count({
+        where: {
+          createdAt: {
+            lte: monthEnd,
+          },
+          status: 'ACTIVE',
+        },
+      });
+
+      subscriptionGrowth.push({
+        month: format(monthStart, 'MMM yyyy'),
+        count,
+      });
+    }
+
+    // Revenue by category
+    const orders = await prisma.order.findMany({
+      where: {
+        paymentStatus: 'PAID',
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    const categoryRevenueMap = new Map<string, number>();
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        const category = item.product.category;
+        const revenue = item.price * item.quantity;
+        categoryRevenueMap.set(
+          category,
+          (categoryRevenueMap.get(category) || 0) + revenue
+        );
+      });
+    });
+
+    const categoryRevenue = Array.from(categoryRevenueMap.entries()).map(([category, revenue]) => ({
+      category,
+      revenue,
+    }));
+
     return NextResponse.json({
       activeSubscriptions,
       monthlyRecurringRevenue,
@@ -134,6 +222,10 @@ export async function GET(request: NextRequest) {
       lowStockProducts,
       recentOrders,
       topProducts,
+      revenueByMonth,
+      ordersByStatus: orderStatusData,
+      subscriptionGrowth,
+      categoryRevenue,
     });
   } catch (error) {
     console.error('Error fetching analytics:', error);
