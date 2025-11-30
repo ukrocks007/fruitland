@@ -85,7 +85,7 @@ export default function NewSubscriptionPage() {
       const addressesRes = await fetch('/api/addresses');
       if (addressesRes.ok) {
         const data = await addressesRes.json();
-        setAddresses(data.addresses || []);
+        setAddresses(data?.addresses || data || []);
         
         // Auto-select default address
         const defaultAddr = data.addresses?.find((a: Address) => a.isDefault);
@@ -114,8 +114,8 @@ export default function NewSubscriptionPage() {
       if (!response.ok) throw new Error('Failed to add address');
 
       const data = await response.json();
-      setAddresses([...addresses, data.address]);
-      setSelectedAddressId(data.address.id);
+      setAddresses([...addresses, data]);
+      setSelectedAddressId(data.id);
       setShowAddressForm(false);
       
       // Reset form

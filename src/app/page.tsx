@@ -1,141 +1,102 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Navbar } from '@/components/navbar';
-import { ArrowRight, ShoppingBag, Package, Clock, Shield } from 'lucide-react';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { Hero } from '@/components/landing/Hero';
+import { CategoryRail } from '@/components/landing/CategoryRail';
+import { FeaturedProducts } from '@/components/landing/FeaturedProducts';
+import { Testimonials } from '@/components/landing/Testimonials';
+import { TrustBadges } from '@/components/landing/TrustBadges';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { ArrowRight } from 'lucide-react';
+import { getFeaturedProducts, getHeroProduct, getCategories } from '@/lib/products';
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
-  
+  const featuredProducts = await getFeaturedProducts();
+  const heroProduct = await getHeroProduct();
+  const categories = await getCategories();
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
+    <div className="min-h-screen bg-white font-sans selection:bg-green-100 selection:text-green-900">
       <Navbar />
-      
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-          Fresh Fruits Delivered
-          <span className="text-green-600"> to Your Door</span>
-        </h1>
-        <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          Subscribe to seasonal, organic, and exotic fruits. Enjoy hassle-free deliveries
-          with flexible subscription plans tailored to your needs.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="/products">
-            <Button size="lg" className="text-lg px-8">
-              Shop Now
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </Link>
-          <Link href="/subscription">
-            <Button size="lg" variant="outline" className="text-lg px-8">
-              Start Subscription
-            </Button>
-          </Link>
-        </div>
-      </section>
 
-      {/* Features */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="grid md:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader>
-              <ShoppingBag className="h-10 w-10 text-green-600 mb-2" />
-              <CardTitle>Fresh Quality</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">
-                Hand-picked fresh fruits delivered at peak ripeness
+      <main>
+        <Hero product={heroProduct} />
+        <CategoryRail categories={categories} />
+        <FeaturedProducts products={featuredProducts} />
+        <TrustBadges />
+        <Testimonials />
+
+        {/* CTA Section - Only show for non-logged-in users */}
+        {!session && (
+          <section className="bg-[#1a472a] text-white py-24 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+              <div className="absolute right-0 top-0 w-96 h-96 bg-yellow-400 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+              <div className="absolute left-0 bottom-0 w-96 h-96 bg-green-400 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+            </div>
+
+            <div className="container mx-auto px-4 text-center relative z-10">
+              <h2 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight">
+                Start Your Healthy Journey Today
+              </h2>
+              <p className="text-xl text-green-100 mb-10 max-w-2xl mx-auto">
+                Join thousands of happy families who trust Fruitland for their daily dose of fresh, organic nutrition.
               </p>
-            </CardContent>
-          </Card>
+              <Link href="/auth/signup">
+                <Button size="lg" className="h-14 px-10 text-lg bg-yellow-500 hover:bg-yellow-400 text-green-900 font-bold rounded-full shadow-xl hover:shadow-yellow-500/20 transition-all">
+                  Get Started
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
+          </section>
+        )}
+      </main>
 
-          <Card>
-            <CardHeader>
-              <Package className="h-10 w-10 text-green-600 mb-2" />
-              <CardTitle>Flexible Plans</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">
-                Weekly, bi-weekly, or monthly subscriptions to fit your lifestyle
+      <footer className="bg-gray-900 text-gray-300 py-12 border-t border-gray-800">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <h3 className="text-white text-lg font-bold mb-4">Fruitland</h3>
+              <p className="text-sm leading-relaxed">
+                Delivering nature's finest fruits directly from organic farms to your doorstep. Freshness guaranteed.
               </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <Clock className="h-10 w-10 text-green-600 mb-2" />
-              <CardTitle>Easy Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">
-                Pause, skip, or cancel anytime with just a few clicks
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <Shield className="h-10 w-10 text-green-600 mb-2" />
-              <CardTitle>Secure Payments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">
-                Safe and secure payment processing via Razorpay
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* Categories */}
-      <section className="container mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center mb-12">Our Categories</h2>
-        <div className="grid md:grid-cols-4 gap-6">
-          {[
-            { name: 'Fresh', emoji: '🍊', desc: 'Daily fresh picks' },
-            { name: 'Seasonal', emoji: '🍓', desc: 'Best of the season' },
-            { name: 'Organic', emoji: '🥑', desc: 'Certified organic' },
-            { name: 'Exotic', emoji: '🥭', desc: 'Rare & exotic varieties' },
-          ].map((category) => (
-            <Link key={category.name} href={`/products?category=${category.name.toLowerCase()}`}>
-              <Card className="hover:shadow-lg transition cursor-pointer">
-                <CardHeader className="text-center">
-                  <div className="text-5xl mb-2">{category.emoji}</div>
-                  <CardTitle>{category.name}</CardTitle>
-                  <CardDescription>{category.desc}</CardDescription>
-                </CardHeader>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA Section - Only show for non-logged-in users */}
-      {!session && (
-        <section className="bg-green-600 text-white py-16">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
-            <p className="text-xl mb-8">
-              Join thousands of happy customers enjoying fresh fruits every week
-            </p>
-            <Link href="/auth/signup">
-              <Button size="lg" variant="secondary" className="text-lg px-8">
-                Create Your Account
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+            </div>
+            <div>
+              <h4 className="text-white font-bold mb-4">Shop</h4>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="/products" className="hover:text-white transition">All Products</Link></li>
+                <li><Link href="/subscriptions" className="hover:text-white transition">Subscriptions</Link></li>
+                <li><Link href="/products?category=seasonal" className="hover:text-white transition">Seasonal</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-white font-bold mb-4">Company</h4>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="/about" className="hover:text-white transition">About Us</Link></li>
+                <li><Link href="/contact" className="hover:text-white transition">Contact</Link></li>
+                <li><Link href="/privacy" className="hover:text-white transition">Privacy Policy</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-white font-bold mb-4">Newsletter</h4>
+              <p className="text-sm mb-4">Subscribe for fresh updates and offers.</p>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  className="bg-gray-800 border-none rounded-lg px-4 py-2 text-sm w-full focus:ring-1 focus:ring-green-500"
+                />
+                <Button size="sm" className="bg-green-600 hover:bg-green-500">
+                  Join
+                </Button>
+              </div>
+            </div>
           </div>
-        </section>
-      )}
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8">
-        <div className="container mx-auto px-4 text-center">
-          <p>&copy; 2025 Fruitland. All rights reserved.</p>
+          <div className="text-center pt-8 border-t border-gray-800 text-sm">
+            <p>&copy; {new Date().getFullYear()} Fruitland. All rights reserved.</p>
+          </div>
         </div>
       </footer>
     </div>
