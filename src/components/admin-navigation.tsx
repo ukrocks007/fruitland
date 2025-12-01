@@ -18,8 +18,8 @@ const navItems = [
     href: '/admin/pos',
     label: 'POS',
     icon: Store,
-    variant: 'default' as const,
-    className: 'bg-green-600 hover:bg-green-700',
+    variant: 'outline' as const,
+    className: 'bg-green-600 hover:bg-green-700 text-white border-green-600',
   },
   {
     href: '/admin/orders',
@@ -81,9 +81,7 @@ export function AdminNavigation() {
               key={item.href}
               asChild
               variant={isActive ? 'default' : item.variant}
-              className={`justify-start sm:justify-center ${
-                item.className || ''
-              } ${isActive && !item.className ? 'bg-primary' : ''}`}
+              className={`justify-start sm:justify-center ${item.className || ''}`}
             >
               <Link href={item.href}>
                 <Icon className="w-4 h-4 mr-2" />
