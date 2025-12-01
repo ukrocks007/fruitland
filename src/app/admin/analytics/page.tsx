@@ -37,190 +37,215 @@ interface TopProduct {
   totalSold: number;
 }
 
+const CACHE_KEY = 'dashboard_analytics';
+const CACHE_TTL_MINUTES = 5; // Cache expires after 5 minutes
+
+async function getCachedAnalytics() {
+  try {
+    const cached = await prisma.analyticsCache.findUnique({
+      where: { key: CACHE_KEY },
+    });
+
+    if (cached && cached.expiresAt > new Date()) {
+      return JSON.parse(cached.data);
+    }
+    return null;
+  } catch {
+    // Table might not exist yet, return null
+    return null;
+  }
+}
+
+async function setCachedAnalytics(data: object) {
+  try {
+    const expiresAt = new Date(Date.now() + CACHE_TTL_MINUTES * 60 * 1000);
+    
+    await prisma.analyticsCache.upsert({
+      where: { key: CACHE_KEY },
+      update: {
+        data: JSON.stringify(data),
+        expiresAt,
+      },
+      create: {
+        key: CACHE_KEY,
+        data: JSON.stringify(data),
+        expiresAt,
+      },
+    });
+  } catch {
+    // Table might not exist yet, ignore
+  }
+}
+
 async function getAnalytics() {
   try {
+    // Check cache first
+    const cached = await getCachedAnalytics();
+    if (cached) {
+      return cached;
+    }
+
     const now = new Date();
     const startMonth = startOfMonth(now);
     const endMonth = endOfMonth(now);
+    const sixMonthsAgo = startOfMonth(subMonths(now, 5));
 
-    // Active subscriptions
-    const activeSubscriptions = await prisma.subscription.count({
-      where: { status: 'ACTIVE' },
-    });
+    // Run independent queries in parallel for better performance
+    const [
+      activeSubscriptions,
+      activeSubscriptionsData,
+      ordersThisMonth,
+      ordersData,
+      totalCustomers,
+      lowStockProducts,
+      recentOrders,
+      topProductsData,
+      ordersByStatus,
+      // Get all orders for the last 6 months in one query for revenue by month
+      allRecentOrders,
+      // Get subscription counts for growth
+      allSubscriptionsForGrowth,
+    ] = await Promise.all([
+      // Active subscriptions count
+      prisma.subscription.count({
+        where: { status: 'ACTIVE' },
+      }),
+      // Active subscriptions for MRR
+      prisma.subscription.findMany({
+        where: { status: 'ACTIVE' },
+        select: { totalAmount: true },
+      }),
+      // Orders this month
+      prisma.order.count({
+        where: {
+          createdAt: { gte: startMonth, lte: endMonth },
+        },
+      }),
+      // Revenue this month
+      prisma.order.findMany({
+        where: {
+          createdAt: { gte: startMonth, lte: endMonth },
+          paymentStatus: 'PAID',
+        },
+        select: { totalAmount: true },
+      }),
+      // Total customers
+      prisma.user.count({
+        where: { role: 'CUSTOMER' },
+      }),
+      // Low stock products
+      prisma.product.count({
+        where: { stock: { lte: 10 }, isAvailable: true },
+      }),
+      // Recent orders - include items and address for full data structure
+      prisma.order.findMany({
+        take: 10,
+        include: {
+          items: { include: { product: true } },
+          address: true,
+          user: { select: { id: true, name: true, email: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      // Top products
+      prisma.orderItem.groupBy({
+        by: ['productId'],
+        _sum: { quantity: true },
+        orderBy: { _sum: { quantity: 'desc' } },
+        take: 5,
+      }),
+      // Orders by status
+      prisma.order.groupBy({
+        by: ['status'],
+        _count: true,
+      }),
+      // All paid orders in last 6 months for revenue calculations
+      prisma.order.findMany({
+        where: {
+          createdAt: { gte: sixMonthsAgo },
+          paymentStatus: 'PAID',
+        },
+        select: { 
+          totalAmount: true, 
+          createdAt: true,
+          items: {
+            include: {
+              product: { select: { category: true } },
+            },
+          },
+        },
+      }),
+      // All subscriptions for growth tracking
+      prisma.subscription.findMany({
+        where: {
+          createdAt: { lte: endMonth },
+          status: 'ACTIVE',
+        },
+        select: { createdAt: true },
+      }),
+    ]);
 
-    // Monthly recurring revenue
-    const activeSubscriptionsData = await prisma.subscription.findMany({
-      where: { status: 'ACTIVE' },
-      select: { totalAmount: true },
-    });
     const monthlyRecurringRevenue = activeSubscriptionsData.reduce(
       (sum, sub) => sum + sub.totalAmount,
       0
     );
 
-    // Orders this month
-    const ordersThisMonth = await prisma.order.count({
-      where: {
-        createdAt: {
-          gte: startMonth,
-          lte: endMonth,
-        },
-      },
-    });
-
-    // Revenue this month
-    const ordersData = await prisma.order.findMany({
-      where: {
-        createdAt: {
-          gte: startMonth,
-          lte: endMonth,
-        },
-        paymentStatus: 'PAID',
-      },
-      select: { totalAmount: true },
-    });
     const revenueThisMonth = ordersData.reduce(
       (sum, order) => sum + order.totalAmount,
       0
     );
 
-    // Total customers
-    const totalCustomers = await prisma.user.count({
-      where: { role: 'CUSTOMER' },
+    // Get product details for top products in a single query
+    const productIds = topProductsData.map(item => item.productId);
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
     });
+    const productMap = new Map(products.map(p => [p.id, p]));
+    
+    const topProducts = topProductsData.map(item => ({
+      product: productMap.get(item.productId) || null,
+      totalSold: item._sum.quantity || 0,
+    }));
 
-    // Low stock products
-    const lowStockProducts = await prisma.product.count({
-      where: {
-        stock: {
-          lte: 10,
-        },
-        isAvailable: true,
-      },
-    });
-
-    // Recent orders
-    const recentOrders = await prisma.order.findMany({
-      take: 10,
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-        address: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    // Top products
-    const topProductsData = await prisma.orderItem.groupBy({
-      by: ['productId'],
-      _sum: {
-        quantity: true,
-      },
-      orderBy: {
-        _sum: {
-          quantity: 'desc',
-        },
-      },
-      take: 5,
-    });
-
-    const topProducts = await Promise.all(
-      topProductsData.map(async (item) => {
-        const product = await prisma.product.findUnique({
-          where: { id: item.productId },
-        });
-        return {
-          product,
-          totalSold: item._sum.quantity || 0,
-        };
-      })
-    );
-
-    // Revenue by month (last 6 months)
+    // Calculate revenue by month from the fetched orders
     const revenueByMonth = [];
     for (let i = 5; i >= 0; i--) {
       const monthStart = startOfMonth(subMonths(now, i));
       const monthEnd = endOfMonth(subMonths(now, i));
       
-      const orders = await prisma.order.findMany({
-        where: {
-          createdAt: {
-            gte: monthStart,
-            lte: monthEnd,
-          },
-          paymentStatus: 'PAID',
-        },
-        select: { totalAmount: true },
-      });
-
-      const revenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+      const monthRevenue = allRecentOrders
+        .filter(order => order.createdAt >= monthStart && order.createdAt <= monthEnd)
+        .reduce((sum, order) => sum + order.totalAmount, 0);
       
       revenueByMonth.push({
         month: format(monthStart, 'MMM yyyy'),
-        revenue,
+        revenue: monthRevenue,
       });
     }
-
-    // Orders by status
-    const ordersByStatus = await prisma.order.groupBy({
-      by: ['status'],
-      _count: true,
-    });
 
     const orderStatusData = ordersByStatus.map(item => ({
       status: item.status,
       count: item._count,
     }));
 
-    // Subscription growth (last 6 months)
+    // Calculate subscription growth from fetched data
     const subscriptionGrowth = [];
     for (let i = 5; i >= 0; i--) {
-      const monthStart = startOfMonth(subMonths(now, i));
       const monthEnd = endOfMonth(subMonths(now, i));
       
-      const count = await prisma.subscription.count({
-        where: {
-          createdAt: {
-            lte: monthEnd,
-          },
-          status: 'ACTIVE',
-        },
-      });
+      const count = allSubscriptionsForGrowth.filter(
+        sub => sub.createdAt <= monthEnd
+      ).length;
 
       subscriptionGrowth.push({
-        month: format(monthStart, 'MMM yyyy'),
+        month: format(startOfMonth(subMonths(now, i)), 'MMM yyyy'),
         count,
       });
     }
 
-    // Revenue by category
-    const allOrders = await prisma.order.findMany({
-      where: {
-        paymentStatus: 'PAID',
-      },
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
-
+    // Calculate revenue by category from the fetched orders
     const categoryRevenueMap = new Map<string, number>();
-    allOrders.forEach(order => {
+    allRecentOrders.forEach(order => {
       order.items.forEach(item => {
         const category = item.product.category;
         const revenue = item.price * item.quantity;
@@ -236,7 +261,7 @@ async function getAnalytics() {
       revenue,
     }));
 
-    return {
+    const analyticsData = {
       activeSubscriptions,
       monthlyRecurringRevenue,
       ordersThisMonth,
@@ -250,6 +275,11 @@ async function getAnalytics() {
       subscriptionGrowth,
       categoryRevenue,
     };
+
+    // Cache the results
+    await setCachedAnalytics(analyticsData);
+
+    return analyticsData;
   } catch (error) {
     console.error('Error fetching analytics:', error);
     return null;

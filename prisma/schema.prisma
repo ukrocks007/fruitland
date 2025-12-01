@@ -30,6 +30,8 @@ model User {
   cartItems     CartItem[]
   customerNotes CustomerNote[] @relation("CustomerNotes")
   createdNotes  CustomerNote[] @relation("CreatedNotes")
+
+  @@index([role])
 }
 
 // NextAuth models
@@ -105,6 +107,9 @@ model Product {
   orderItems        OrderItem[]
   subscriptionItems SubscriptionItem[]
   cartItems         CartItem[]
+
+  @@index([stock, isAvailable])
+  @@index([category])
 }
 
 // Order model
@@ -128,6 +133,11 @@ model Order {
   address    Address     @relation(fields: [addressId], references: [id])
   subscription Subscription? @relation(fields: [subscriptionId], references: [id])
   items      OrderItem[]
+
+  @@index([createdAt])
+  @@index([paymentStatus])
+  @@index([status])
+  @@index([createdAt, paymentStatus])
 }
 
 model OrderItem {
@@ -140,6 +150,8 @@ model OrderItem {
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
+
+  @@index([productId])
 }
 
 // Subscription Package model - Admin defined packages
@@ -183,6 +195,10 @@ model Subscription {
   items   SubscriptionItem[]
   orders  Order[]
   skips   SubscriptionSkip[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt])
 }
 
 model SubscriptionItem {
@@ -244,4 +260,17 @@ model CustomerNote {
 
   user      User @relation("CustomerNotes", fields: [userId], references: [id], onDelete: Cascade)
   creator   User @relation("CreatedNotes", fields: [createdBy], references: [id])
+}
+
+// Analytics cache for performance optimization
+model AnalyticsCache {
+  id        String   @id @default(cuid())
+  key       String   @unique // e.g., "dashboard_analytics"
+  data      String   // JSON data
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+  @@index([expiresAt])
 }
