@@ -102,7 +102,7 @@ export function ProductRecommendations({
       toast.success(`${product.name} added to cart!`);
     } catch (error) {
       console.error('Error adding to cart:', error);
-      toast.error('Please sign in to add items to cart');
+      toast.error('Failed to add item to cart');
     }
   };
 

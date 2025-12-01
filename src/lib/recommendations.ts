@@ -1,6 +1,11 @@
 import { prisma } from '@/lib/prisma';
 import { RecommendationReason, RecommendationReasonType } from '@/types';
 
+// Configuration constants for recommendation algorithms
+const MAX_CART_ITEMS_FOR_RECOMMENDATIONS = 3; // Limit cart items analyzed for performance
+const TOP_CATEGORIES_COUNT = 3; // Number of top categories to consider for history-based recommendations
+const MIN_REORDER_COUNT = 2; // Minimum number of orders for frequently reordered products
+
 export interface RecommendedProduct {
   id: string;
   name: string;
@@ -196,7 +201,7 @@ async function getHistoryBasedRecommendations(
 
   const products = await prisma.product.findMany({
     where: {
-      category: { in: sortedCategories.slice(0, 3) }, // Top 3 categories
+      category: { in: sortedCategories.slice(0, TOP_CATEGORIES_COUNT) },
       id: { notIn: excludeIds },
       isAvailable: true,
       stock: { gt: 0 },
@@ -220,6 +225,7 @@ async function getFrequentlyReordered(
   excludeProductIds: string[] = []
 ): Promise<RecommendedProduct[]> {
   // Find products ordered multiple times by this user
+  // Note: We first get all items then filter in memory due to Prisma groupBy having limitations
   const reorderedProducts = await prisma.orderItem.groupBy({
     by: ['productId'],
     where: {
@@ -230,18 +236,19 @@ async function getFrequentlyReordered(
       productId: { notIn: excludeProductIds },
     },
     _count: { productId: true },
-    having: {
-      productId: { _count: { gte: 2 } }, // At least 2 orders
-    },
     orderBy: { _count: { productId: 'desc' } },
-    take: limit,
   });
 
-  if (reorderedProducts.length === 0) {
+  // Filter products ordered at least MIN_REORDER_COUNT times
+  const frequentlyOrderedProducts = reorderedProducts.filter(
+    (p) => p._count.productId >= MIN_REORDER_COUNT
+  ).slice(0, limit);
+
+  if (frequentlyOrderedProducts.length === 0) {
     return [];
   }
 
-  const productIds = reorderedProducts.map((p) => p.productId);
+  const productIds = frequentlyOrderedProducts.map((p) => p.productId);
 
   const products = await prisma.product.findMany({
     where: {
@@ -255,7 +262,7 @@ async function getFrequentlyReordered(
   const productMap = new Map(products.map((p) => [p.id, p]));
   const result: RecommendedProduct[] = [];
 
-  for (const rp of reorderedProducts) {
+  for (const rp of frequentlyOrderedProducts) {
     const product = productMap.get(rp.productId);
     if (product) {
       result.push({
@@ -383,12 +390,12 @@ export async function getCartRecommendations(
     }
   };
 
-  // 1. Frequently bought together with cart items
-  for (const productId of cartProductIds.slice(0, 3)) {
+  // 1. Frequently bought together with cart items (limit to first few items for performance)
+  for (const productId of cartProductIds.slice(0, MAX_CART_ITEMS_FOR_RECOMMENDATIONS)) {
     if (recommendations.length >= limit) break;
     const fbt = await getFrequentlyBoughtTogether(
       productId,
-      Math.ceil(limit / 3),
+      Math.ceil(limit / MAX_CART_ITEMS_FOR_RECOMMENDATIONS),
       Array.from(seenIds)
     );
     addUnique(fbt);
@@ -398,7 +405,7 @@ export async function getCartRecommendations(
   if (userId && recommendations.length < limit) {
     const reordered = await getFrequentlyReordered(
       userId,
-      Math.ceil(limit / 3),
+      Math.ceil(limit / MAX_CART_ITEMS_FOR_RECOMMENDATIONS),
       Array.from(seenIds)
     );
     addUnique(reordered);
