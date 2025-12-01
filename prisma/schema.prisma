@@ -33,6 +33,7 @@ model User {
   createdNotes     CustomerNote[] @relation("CreatedNotes")
   assignedOrders   Order[]        @relation("DeliveryPartner")
   processedRefunds Refund[]       @relation("RefundProcessedBy")
+  reviews          Review[]
 
   @@index([role])
 }
@@ -107,12 +108,30 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  orderItems        OrderItem[]
-  subscriptionItems SubscriptionItem[]
-  cartItems         CartItem[]
+  orderItems         OrderItem[]
+  subscriptionItems  SubscriptionItem[]
+  cartItems          CartItem[]
+  reviews            Review[]
+  inventoryForecasts InventoryForecast[]
 
   @@index([stock, isAvailable])
   @@index([category])
+}
+
+// Inventory Forecast model for demand prediction
+model InventoryForecast {
+  id                    String   @id @default(cuid())
+  productId             String
+  forecastDate          DateTime // Date for which forecast is valid
+  expectedQuantity      Int      // Forecasted demand quantity
+  recommendedReorderQty Int      // Suggested reorder quantity
+  createdAt             DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([forecastDate])
+  @@index([productId, forecastDate])
 }
 
 // Order model
@@ -284,7 +303,6 @@ model AnalyticsCache {
   @@index([expiresAt])
 }
 
-// Refund model for order refund processing
 model Refund {
   id               String   @id @default(uuid())
   orderId          String
@@ -303,4 +321,33 @@ model Refund {
   @@index([orderId])
   @@index([status])
   @@index([createdAt])
+}
+
+// Review status enum
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Customer review model
+model Review {
+  id              String       @id @default(uuid())
+  productId       String
+  userId          String
+  rating          Int          // 1-5 stars
+  title           String?
+  comment         String
+  verifiedPurchase Boolean     @default(false)
+  status          ReviewStatus @default(PENDING)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId]) // Prevent duplicate reviews
+  @@index([productId, status])
+  @@index([userId])
+  @@index([status])
 }

@@ -39,6 +39,12 @@ export const SubscriptionStatus = {
   CANCELLED: 'CANCELLED',
 } as const;
 
+export const ReviewStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+} as const;
+
 export const ProductCategory = {
   FRESH: 'fresh',
   SEASONAL: 'seasonal',
@@ -71,6 +77,7 @@ export type PaymentStatusType = (typeof PaymentStatus)[keyof typeof PaymentStatu
 export type SubscriptionFrequencyType = (typeof SubscriptionFrequency)[keyof typeof SubscriptionFrequency];
 export type SubscriptionPreferenceType = (typeof SubscriptionPreference)[keyof typeof SubscriptionPreference];
 export type SubscriptionStatusType = (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus];
+export type ReviewStatusType = (typeof ReviewStatus)[keyof typeof ReviewStatus];
 export type ProductCategoryType = (typeof ProductCategory)[keyof typeof ProductCategory];
 export type RefundStatusType = (typeof RefundStatus)[keyof typeof RefundStatus];
 export type RefundMethodType = (typeof RefundMethod)[keyof typeof RefundMethod];
@@ -244,4 +251,39 @@ export interface ProductFormData {
   stock: number;
   isAvailable: boolean;
   isSeasonal: boolean;
+}
+
+// Review Types
+export interface Review {
+  id: string;
+  productId: string;
+  userId: string;
+  rating: number;
+  title?: string | null;
+  comment: string;
+  verifiedPurchase: boolean;
+  status: ReviewStatusType;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  user?: {
+    id: string;
+    name?: string | null;
+  };
+  product?: {
+    id: string;
+    name: string;
+    image: string;
+  };
+}
+
+export interface ReviewFormData {
+  rating: number;
+  title?: string;
+  comment: string;
+}
+
+export interface ReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  ratingDistribution: Record<number, number>;
 }

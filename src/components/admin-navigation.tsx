@@ -13,6 +13,8 @@ import {
   BarChart3,
   Truck,
   RotateCcw,
+  MessageSquare,
+  TrendingUp,
 } from 'lucide-react';
 
 const navItems = [
@@ -39,6 +41,18 @@ const navItems = [
     href: '/admin/analytics',
     label: 'Analytics',
     icon: BarChart3,
+    variant: 'outline' as const,
+  },
+  {
+    href: '/admin/analytics-advanced',
+    label: 'Advanced',
+    icon: TrendingUp,
+    variant: 'outline' as const,
+  },
+  {
+    href: '/admin/forecasting',
+    label: 'Forecasting',
+    icon: TrendingUp,
     variant: 'outline' as const,
   },
   {
@@ -69,6 +83,12 @@ const navItems = [
     href: '/admin/products',
     label: 'Products',
     icon: LayoutDashboard,
+    variant: 'outline' as const,
+  },
+  {
+    href: '/admin/reviews',
+    label: 'Reviews',
+    icon: MessageSquare,
     variant: 'outline' as const,
   },
   {
