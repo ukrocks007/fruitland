@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { verifyRazorpaySignature } from '@/lib/razorpay';
 import { prisma } from '@/lib/prisma';
+import { awardLoyaltyPoints } from '@/lib/loyalty';
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,9 +79,19 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Award loyalty points
+    const loyaltyResult = await awardLoyaltyPoints(
+      order.userId,
+      order.id,
+      order.totalAmount
+    );
+
     return NextResponse.json({
       success: true,
       order,
+      loyaltyPointsEarned: loyaltyResult.pointsEarned,
+      newPointsBalance: loyaltyResult.newBalance,
+      loyaltyTier: loyaltyResult.newTier,
     });
   } catch (error) {
     console.error('Error verifying payment:', error);

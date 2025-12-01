@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { CartRecommendations } from '@/components/CartRecommendations';
 import { toast } from 'sonner';
-import { Loader2, MapPin, Plus } from 'lucide-react';
+import { Loader2, MapPin, Plus, Star } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
@@ -38,10 +38,38 @@ interface Address {
   isDefault: boolean;
 }
 
+interface LoyaltyInfo {
+  pointsBalance: number;
+  loyaltyTier: string;
+  settings: {
+    pointsPerRupee: number;
+    minRedeemablePoints: number;
+    pointValueInRupees: number;
+  };
+}
+
+interface RazorpayResponse {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
 declare global {
   interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Razorpay: any;
   }
+}
+
+interface CartApiItem {
+  product: {
+    id: string;
+    name: string;
+    price: number;
+    image: string;
+    stock: number;
+  };
+  quantity: number;
 }
 
 export default function CheckoutPage() {
@@ -62,6 +90,11 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
+
+  // Loyalty points state
+  const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
+  const [usePoints, setUsePoints] = useState(false);
+  const [pointsToRedeem, setPointsToRedeem] = useState(0);
   
   // New address form state
   const [newAddress, setNewAddress] = useState({
@@ -75,18 +108,7 @@ export default function CheckoutPage() {
     isDefault: false
   });
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin?callbackUrl=/checkout');
-      return;
-    }
-
-    if (status === 'authenticated') {
-      loadData();
-    }
-  }, [status, router]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       // Load cart from database
       const cartRes = await fetch('/api/cart');
@@ -98,7 +120,7 @@ export default function CheckoutPage() {
           return;
         }
         // Transform cart data to match expected format
-        const items = cartData.map((item: any) => ({
+        const items = cartData.map((item: CartApiItem) => ({
           id: item.product.id,
           name: item.product.name,
           price: item.product.price,
@@ -124,13 +146,31 @@ export default function CheckoutPage() {
           setSelectedAddressId(data[0].id);
         }
       }
+
+      // Load loyalty info
+      const loyaltyRes = await fetch('/api/user/loyalty');
+      if (loyaltyRes.ok) {
+        const loyaltyData = await loyaltyRes.json();
+        setLoyaltyInfo(loyaltyData);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Failed to load checkout data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin?callbackUrl=/checkout');
+      return;
+    }
+
+    if (status === 'authenticated') {
+      loadData();
+    }
+  }, [status, router, loadData]);
 
   const handleAddAddress = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,13 +198,40 @@ export default function CheckoutPage() {
         isDefault: false
       });
       toast.success('Address added successfully');
-    } catch (error) {
+    } catch {
       toast.error('Failed to add address');
     }
   };
 
-  const calculateTotal = () => {
+  const calculateSubtotal = () => {
     return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
+  const calculatePointsDiscount = () => {
+    if (!usePoints || !loyaltyInfo || pointsToRedeem <= 0) return 0;
+    return pointsToRedeem * loyaltyInfo.settings.pointValueInRupees;
+  };
+
+  const calculateTotal = () => {
+    const subtotal = calculateSubtotal();
+    const discount = calculatePointsDiscount();
+    return Math.max(0, subtotal - discount);
+  };
+
+  const handlePointsChange = (value: string) => {
+    const points = parseInt(value, 10) || 0;
+    const maxPoints = loyaltyInfo?.pointsBalance || 0;
+    const pointValue = loyaltyInfo?.settings.pointValueInRupees || 1;
+    const maxRedeemableForOrder = pointValue > 0 ? Math.floor(calculateSubtotal() / pointValue) : 0;
+    const effectiveMax = Math.min(maxPoints, maxRedeemableForOrder);
+    setPointsToRedeem(Math.min(Math.max(0, points), effectiveMax));
+  };
+
+  const handleUsePointsToggle = (checked: boolean) => {
+    setUsePoints(checked);
+    if (!checked) {
+      setPointsToRedeem(0);
+    }
   };
 
   const handleCODOrder = async () => {
@@ -185,7 +252,8 @@ export default function CheckoutPage() {
             quantity: item.quantity
           })),
           addressId: selectedAddressId,
-          paymentMethod: 'COD'
+          paymentMethod: 'COD',
+          redeemPoints: usePoints ? pointsToRedeem : 0,
         }),
       });
 
@@ -194,17 +262,24 @@ export default function CheckoutPage() {
         throw new Error(error.error || 'Failed to create order');
       }
 
+      const orderData = await orderRes.json();
+
       // Clear cart from database
       await fetch('/api/cart', { method: 'DELETE' });
       
       // Dispatch event to update navbar
       window.dispatchEvent(new Event('cartUpdated'));
       
-      toast.success('Order placed successfully! Pay on delivery.');
+      let successMessage = 'Order placed successfully! Pay on delivery.';
+      if (orderData.loyaltyPointsEarned > 0) {
+        successMessage += ` You earned ${orderData.loyaltyPointsEarned} loyalty points!`;
+      }
+      toast.success(successMessage);
       router.push('/orders');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Order error:', error);
-      toast.error(error.message || 'Failed to place order');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to place order';
+      toast.error(errorMessage);
     } finally {
       setProcessing(false);
     }
@@ -229,7 +304,8 @@ export default function CheckoutPage() {
             quantity: item.quantity
           })),
           addressId: selectedAddressId,
-          paymentMethod: 'ONLINE'
+          paymentMethod: 'ONLINE',
+          redeemPoints: usePoints ? pointsToRedeem : 0,
         }),
       });
 
@@ -248,7 +324,7 @@ export default function CheckoutPage() {
         name: 'Fruitland',
         description: 'Fresh Fruit Order',
         order_id: orderData.id,
-        handler: async function (response: any) {
+        handler: async function (response: RazorpayResponse) {
           try {
             // 3. Verify Payment
             const verifyRes = await fetch('/api/payment/verify', {
@@ -264,13 +340,19 @@ export default function CheckoutPage() {
 
             if (!verifyRes.ok) throw new Error('Payment verification failed');
 
+            const verifyData = await verifyRes.json();
+
             // Clear cart from database
             await fetch('/api/cart', { method: 'DELETE' });
             
             // Dispatch event to update navbar
             window.dispatchEvent(new Event('cartUpdated'));
             
-            toast.success('Order placed successfully!');
+            let successMessage = 'Order placed successfully!';
+            if (verifyData.loyaltyPointsEarned > 0) {
+              successMessage += ` You earned ${verifyData.loyaltyPointsEarned} loyalty points!`;
+            }
+            toast.success(successMessage);
             router.push('/orders');
           } catch (error) {
             console.error('Verification error:', error);
@@ -288,9 +370,10 @@ export default function CheckoutPage() {
 
       const rzp = new window.Razorpay(options);
       rzp.open();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Payment error:', error);
-      toast.error(error.message || 'Payment failed');
+      const errorMessage = error instanceof Error ? error.message : 'Payment failed';
+      toast.error(errorMessage);
     } finally {
       setProcessing(false);
     }
@@ -311,6 +394,9 @@ export default function CheckoutPage() {
       </div>
     );
   }
+
+  const canRedeemPoints = loyaltyInfo && 
+    loyaltyInfo.pointsBalance >= loyaltyInfo.settings.minRedeemablePoints;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -482,6 +568,82 @@ export default function CheckoutPage() {
               </CardContent>
             </Card>
 
+            {/* Loyalty Points Redemption */}
+            {loyaltyInfo && loyaltyInfo.pointsBalance > 0 && (
+              <Card className="border-green-200 bg-green-50/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Star className="h-5 w-5 text-green-600" />
+                    Use Loyalty Points
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Available Points: <span className="text-green-600">{loyaltyInfo.pointsBalance}</span></p>
+                      <p className="text-sm text-gray-500">
+                        Worth ₹{(loyaltyInfo.pointsBalance * loyaltyInfo.settings.pointValueInRupees).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="usePoints"
+                        checked={usePoints}
+                        onChange={(e) => handleUsePointsToggle(e.target.checked)}
+                        disabled={!canRedeemPoints}
+                        className="h-4 w-4"
+                      />
+                      <Label htmlFor="usePoints" className="cursor-pointer">
+                        Use Points
+                      </Label>
+                    </div>
+                  </div>
+
+                  {usePoints && canRedeemPoints && (
+                    <div className="space-y-2">
+                      <Label htmlFor="pointsAmount">Points to Redeem</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="pointsAmount"
+                          type="number"
+                          min={loyaltyInfo.settings.minRedeemablePoints}
+                          max={Math.min(
+                            loyaltyInfo.pointsBalance,
+                            Math.floor(calculateSubtotal() / loyaltyInfo.settings.pointValueInRupees)
+                          )}
+                          value={pointsToRedeem}
+                          onChange={(e) => handlePointsChange(e.target.value)}
+                          className="max-w-32"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const maxPoints = Math.min(
+                              loyaltyInfo.pointsBalance,
+                              Math.floor(calculateSubtotal() / loyaltyInfo.settings.pointValueInRupees)
+                            );
+                            setPointsToRedeem(maxPoints);
+                          }}
+                        >
+                          Use Max
+                        </Button>
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        Discount: ₹{calculatePointsDiscount().toFixed(2)}
+                      </p>
+                      {!canRedeemPoints && (
+                        <p className="text-sm text-orange-600">
+                          Minimum {loyaltyInfo.settings.minRedeemablePoints} points required to redeem
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Order Items Review */}
             <Card>
               <CardHeader>
@@ -522,12 +684,21 @@ export default function CheckoutPage() {
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-semibold">₹{calculateTotal().toFixed(2)}</span>
+                  <span className="font-semibold">₹{calculateSubtotal().toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
                   <span className="font-semibold text-green-600">FREE</span>
                 </div>
+                {usePoints && pointsToRedeem > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span className="flex items-center gap-1">
+                      <Star className="h-4 w-4" />
+                      Points Discount ({pointsToRedeem} pts)
+                    </span>
+                    <span className="font-semibold">-₹{calculatePointsDiscount().toFixed(2)}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between">
                   <span className="text-lg font-bold">Total</span>
@@ -535,6 +706,11 @@ export default function CheckoutPage() {
                     ₹{calculateTotal().toFixed(2)}
                   </span>
                 </div>
+                {loyaltyInfo && (
+                  <p className="text-sm text-gray-500 text-center">
+                    Earn ~{Math.floor(calculateTotal() * loyaltyInfo.settings.pointsPerRupee)} points on this order
+                  </p>
+                )}
               </CardContent>
               <CardFooter>
                 <Button 

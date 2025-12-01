@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ShoppingCart, User, LogOut, Package, Settings, Truck } from 'lucide-react';
+import { ShoppingCart, User, LogOut, Package, Settings, Truck, Building2 } from 'lucide-react';
 import { Role } from '@/types';
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -58,6 +58,9 @@ export function Navbar() {
         <div className="hidden md:flex items-center space-x-6">
           <Link href="/products" className="hover:text-green-600 transition">
             Products
+          </Link>
+          <Link href="/bulk-order" className="hover:text-green-600 transition">
+            Bulk Order
           </Link>
           <Link href="/subscriptions" className="hover:text-green-600 transition">
             Subscriptions
@@ -123,6 +126,12 @@ export function Navbar() {
                     <Link href="/orders">
                       <Package className="h-4 w-4 mr-2" />
                       Orders
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/bulk-order">
+                      <Building2 className="h-4 w-4 mr-2" />
+                      Bulk Order
                     </Link>
                   </DropdownMenuItem>
                   {session.user.role === Role.DELIVERY_PARTNER && (

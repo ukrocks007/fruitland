@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Loader2, Search, Eye, Trash2, Package, Truck, UserPlus } from 'lucide-react';
+import { Loader2, Search, Eye, Trash2, Package, Truck, UserPlus, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { Role } from '@/types';
 
@@ -583,6 +583,19 @@ export default function AdminOrdersPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <Button
+                  onClick={() => {
+                    window.open(`/api/admin/export/invoice/${selectedOrder.id}`, '_blank');
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Download Invoice (PDF)
+                </Button>
               </div>
             </div>
           )}

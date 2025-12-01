@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Navbar } from '@/components/navbar';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,17 +8,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Star } from 'lucide-react';
 
 interface ConfigItem {
   key: string;
   value: string;
 }
 
+interface LoyaltySettings {
+  pointsPerRupee: string;
+  minRedeemablePoints: string;
+  pointValueInRupees: string;
+  silverTierThreshold: string;
+  goldTierThreshold: string;
+}
+
 export default function AdminSettingsPage() {
-  const [configs, setConfigs] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingLoyalty, setSavingLoyalty] = useState(false);
 
   // Form state
   const [paymentSettings, setPaymentSettings] = useState({
@@ -40,11 +48,15 @@ export default function AdminSettingsPage() {
     lowStockThreshold: '10',
   });
 
-  useEffect(() => {
-    fetchConfigs();
-  }, []);
+  const [loyaltySettings, setLoyaltySettings] = useState<LoyaltySettings>({
+    pointsPerRupee: '0.01',
+    minRedeemablePoints: '100',
+    pointValueInRupees: '1',
+    silverTierThreshold: '500',
+    goldTierThreshold: '2000',
+  });
 
-  const fetchConfigs = async () => {
+  const fetchConfigs = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/admin/config');
@@ -55,7 +67,6 @@ export default function AdminSettingsPage() {
       data.configs.forEach((config: ConfigItem) => {
         configMap[config.key] = config.value;
       });
-      setConfigs(configMap);
 
       // Parse configs into form state
       setPaymentSettings({
@@ -76,13 +87,30 @@ export default function AdminSettingsPage() {
         supportEmail: configMap['SUPPORT_EMAIL'] || '',
         lowStockThreshold: configMap['LOW_STOCK_THRESHOLD'] || '10',
       });
+
+      // Fetch loyalty settings
+      const loyaltyResponse = await fetch('/api/admin/loyalty');
+      if (loyaltyResponse.ok) {
+        const loyaltyData = await loyaltyResponse.json();
+        setLoyaltySettings({
+          pointsPerRupee: String(loyaltyData.settings.pointsPerRupee),
+          minRedeemablePoints: String(loyaltyData.settings.minRedeemablePoints),
+          pointValueInRupees: String(loyaltyData.settings.pointValueInRupees),
+          silverTierThreshold: String(loyaltyData.settings.silverTierThreshold),
+          goldTierThreshold: String(loyaltyData.settings.goldTierThreshold),
+        });
+      }
     } catch (error) {
       console.error('Error fetching config:', error);
       toast.error('Failed to load settings');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchConfigs();
+  }, [fetchConfigs]);
 
   const handleSave = async () => {
     try {
@@ -116,6 +144,33 @@ export default function AdminSettingsPage() {
       toast.error('Failed to save settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveLoyalty = async () => {
+    try {
+      setSavingLoyalty(true);
+
+      const response = await fetch('/api/admin/loyalty', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pointsPerRupee: parseFloat(loyaltySettings.pointsPerRupee),
+          minRedeemablePoints: parseInt(loyaltySettings.minRedeemablePoints, 10),
+          pointValueInRupees: parseFloat(loyaltySettings.pointValueInRupees),
+          silverTierThreshold: parseInt(loyaltySettings.silverTierThreshold, 10),
+          goldTierThreshold: parseInt(loyaltySettings.goldTierThreshold, 10),
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to save loyalty settings');
+
+      toast.success('Loyalty settings saved successfully');
+    } catch (error) {
+      console.error('Error saving loyalty settings:', error);
+      toast.error('Failed to save loyalty settings');
+    } finally {
+      setSavingLoyalty(false);
     }
   };
 
@@ -177,6 +232,125 @@ export default function AdminSettingsPage() {
                   className="h-4 w-4"
                 />
                 <Label htmlFor="enableCOD">Enable Cash on Delivery (COD)</Label>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Loyalty Program Settings */}
+          <Card className="border-green-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="h-5 w-5 text-green-600" />
+                Loyalty Program Settings
+              </CardTitle>
+              <CardDescription>
+                Configure loyalty points earning and redemption rules
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="pointsPerRupee">Points Per Rupee</Label>
+                  <Input
+                    id="pointsPerRupee"
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    value={loyaltySettings.pointsPerRupee}
+                    onChange={(e) =>
+                      setLoyaltySettings({ ...loyaltySettings, pointsPerRupee: e.target.value })
+                    }
+                  />
+                  <p className="text-xs text-gray-500">
+                    E.g., 0.01 = 1 point per ₹100 spent
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="pointValueInRupees">Point Value (₹)</Label>
+                  <Input
+                    id="pointValueInRupees"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={loyaltySettings.pointValueInRupees}
+                    onChange={(e) =>
+                      setLoyaltySettings({ ...loyaltySettings, pointValueInRupees: e.target.value })
+                    }
+                  />
+                  <p className="text-xs text-gray-500">
+                    Rupee value per point when redeeming
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="minRedeemablePoints">Minimum Redeemable Points</Label>
+                  <Input
+                    id="minRedeemablePoints"
+                    type="number"
+                    min="1"
+                    value={loyaltySettings.minRedeemablePoints}
+                    onChange={(e) =>
+                      setLoyaltySettings({ ...loyaltySettings, minRedeemablePoints: e.target.value })
+                    }
+                  />
+                  <p className="text-xs text-gray-500">
+                    Minimum points required to redeem
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <h4 className="font-medium mb-3">Tier Thresholds</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="silverTierThreshold">Silver Tier (points)</Label>
+                    <Input
+                      id="silverTierThreshold"
+                      type="number"
+                      min="0"
+                      value={loyaltySettings.silverTierThreshold}
+                      onChange={(e) =>
+                        setLoyaltySettings({ ...loyaltySettings, silverTierThreshold: e.target.value })
+                      }
+                    />
+                    <p className="text-xs text-gray-500">
+                      Points needed for Silver tier
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="goldTierThreshold">Gold Tier (points)</Label>
+                    <Input
+                      id="goldTierThreshold"
+                      type="number"
+                      min="0"
+                      value={loyaltySettings.goldTierThreshold}
+                      onChange={(e) =>
+                        setLoyaltySettings({ ...loyaltySettings, goldTierThreshold: e.target.value })
+                      }
+                    />
+                    <p className="text-xs text-gray-500">
+                      Points needed for Gold tier
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <Button onClick={handleSaveLoyalty} disabled={savingLoyalty} variant="outline">
+                  {savingLoyalty ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Loyalty Settings
+                    </>
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>

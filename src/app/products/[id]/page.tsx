@@ -1,15 +1,20 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Navbar } from '@/components/navbar';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ReviewList } from '@/components/review-list';
+import { ReviewForm } from '@/components/review-form';
+import { StarRating } from '@/components/ui/star-rating';
 import { ProductRecommendations } from '@/components/ProductRecommendations';
-import { Minus, Plus, ShoppingCart, Loader2, ArrowLeft } from 'lucide-react';
-import Image from 'next/image';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Loader2, ShoppingCart, ArrowLeft, MessageSquare, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSession } from 'next-auth/react';
 
 interface Product {
   id: string;
@@ -23,6 +28,11 @@ interface Product {
   isSeasonal: boolean;
 }
 
+interface ReviewStats {
+  averageRating: number;
+  totalReviews: number;
+}
+
 export default function ProductDetailPage({
   params,
 }: {
@@ -30,35 +40,54 @@ export default function ProductDetailPage({
 }) {
   const { id: productId } = use(params);
   const router = useRouter();
+  const { data: session } = useSession();
+
   const [product, setProduct] = useState<Product | null>(null);
+  const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  const [adding, setAdding] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [hasReviewed, setHasReviewed] = useState(false);
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/products/${productId}`);
-        if (response.ok) {
-          const data = await response.json();
-          setProduct(data);
-        } else {
-          toast.error('Product not found');
-          router.push('/products');
-        }
-      } catch (error) {
-        console.error('Error fetching product:', error);
-        toast.error('Failed to load product');
-      } finally {
-        setLoading(false);
+  const fetchProduct = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/products/${productId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setProduct(data);
+      } else {
+        toast.error('Product not found');
+        router.push('/products');
       }
-    };
-
-    if (productId) {
-      fetchProduct();
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      toast.error('Failed to load product');
     }
   }, [productId, router]);
+
+  const fetchReviewStats = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/products/${productId}/reviews?limit=1`);
+      if (response.ok) {
+        const data = await response.json();
+        setReviewStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Error fetching review stats:', error);
+    }
+  }, [productId]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([fetchProduct(), fetchReviewStats()]);
+      setLoading(false);
+    };
+    if (productId) {
+      loadData();
+    }
+  }, [productId, fetchProduct, fetchReviewStats]);
 
   const handleQuantityChange = (delta: number) => {
     const newQuantity = quantity + delta;
@@ -70,7 +99,7 @@ export default function ProductDetailPage({
   const addToCart = async () => {
     if (!product) return;
 
-    setAdding(true);
+    setAddingToCart(true);
     try {
       const res = await fetch('/api/cart', {
         method: 'POST',
@@ -93,8 +122,15 @@ export default function ProductDetailPage({
       console.error('Error adding to cart:', error);
       toast.error('Please sign in to add items to cart');
     } finally {
-      setAdding(false);
+      setAddingToCart(false);
     }
+  };
+
+  const handleReviewSuccess = () => {
+    setIsReviewDialogOpen(false);
+    setHasReviewed(true);
+    fetchReviewStats();
+    toast.success('Thank you for your review!');
   };
 
   if (loading) {
@@ -127,7 +163,7 @@ export default function ProductDetailPage({
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        {/* Back button */}
+        {/* Back Button */}
         <Button
           variant="ghost"
           onClick={() => router.back()}
@@ -138,108 +174,141 @@ export default function ProductDetailPage({
         </Button>
 
         {/* Product Details */}
-        <Card className="overflow-hidden">
-          <CardContent className="p-0">
-            <div className="grid md:grid-cols-2 gap-0">
-              {/* Product Image */}
-              <div className="relative h-64 md:h-96 bg-gray-100">
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  fill
-                  className="object-cover"
-                  priority
-                />
-                {product.isSeasonal && (
-                  <Badge className="absolute top-4 right-4 bg-yellow-500">
-                    Seasonal
-                  </Badge>
-                )}
+        <div className="grid md:grid-cols-2 gap-8 mb-12">
+          {/* Product Image */}
+          <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-200">
+            <Image
+              src={product.image}
+              alt={product.name}
+              fill
+              className="object-cover"
+              priority
+            />
+            {product.isSeasonal && (
+              <Badge className="absolute top-4 right-4 bg-yellow-500">
+                Seasonal
+              </Badge>
+            )}
+          </div>
+
+          {/* Product Info */}
+          <div>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
+                <Badge variant="outline" className="capitalize">
+                  {product.category}
+                </Badge>
               </div>
+            </div>
 
-              {/* Product Info */}
-              <div className="p-6 md:p-8 flex flex-col">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <Badge variant="outline" className="capitalize mb-2">
-                      {product.category}
-                    </Badge>
-                    <h1 className="text-2xl md:text-3xl font-bold">
-                      {product.name}
-                    </h1>
-                  </div>
-                </div>
+            {/* Rating Summary */}
+            {reviewStats && reviewStats.totalReviews > 0 && (
+              <div className="flex items-center gap-3 mb-4">
+                <StarRating rating={reviewStats.averageRating} size="md" />
+                <span className="text-lg font-semibold">
+                  {reviewStats.averageRating.toFixed(1)}
+                </span>
+                <span className="text-gray-500">
+                  ({reviewStats.totalReviews} reviews)
+                </span>
+              </div>
+            )}
 
-                <p className="text-gray-600 mb-6">{product.description}</p>
+            <p className="text-gray-600 mb-6">{product.description}</p>
 
-                <div className="mb-6">
-                  <p className="text-3xl font-bold text-green-600">
-                    ₹{product.price}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {product.stock > 0 ? (
-                      <span className="text-green-600">
-                        {product.stock} in stock
-                      </span>
-                    ) : (
-                      <span className="text-red-600">Out of stock</span>
-                    )}
-                  </p>
-                </div>
+            <div className="mb-6">
+              <span className="text-4xl font-bold text-green-600">
+                ₹{product.price}
+              </span>
+              <p className="text-sm text-gray-500 mt-1">
+                {product.stock > 0
+                  ? `${product.stock} items in stock`
+                  : 'Out of stock'}
+              </p>
+            </div>
 
-                {/* Quantity Selector */}
-                <div className="flex items-center gap-4 mb-6">
-                  <span className="text-gray-700 font-medium">Quantity:</span>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleQuantityChange(-1)}
-                      disabled={quantity <= 1}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <span className="w-12 text-center font-semibold">
-                      {quantity}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleQuantityChange(1)}
-                      disabled={quantity >= product.stock}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Add to Cart Button */}
+            {/* Quantity Selector */}
+            <div className="flex items-center gap-4 mb-6">
+              <span className="text-gray-700 font-medium">Quantity:</span>
+              <div className="flex items-center gap-2">
                 <Button
-                  className="w-full md:w-auto mt-auto"
-                  size="lg"
-                  onClick={addToCart}
-                  disabled={product.stock === 0 || adding}
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleQuantityChange(-1)}
+                  disabled={quantity <= 1}
                 >
-                  {adding ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Adding...
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart className="mr-2 h-4 w-4" />
-                      {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-                    </>
-                  )}
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <span className="w-12 text-center font-semibold">
+                  {quantity}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleQuantityChange(1)}
+                  disabled={quantity >= product.stock}
+                >
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+
+            <div className="flex gap-4">
+              <Button
+                size="lg"
+                onClick={addToCart}
+                disabled={product.stock === 0 || addingToCart}
+                className="flex-1"
+              >
+                {addingToCart ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                )}
+                {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+              </Button>
+
+              {session && !hasReviewed && (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => setIsReviewDialogOpen(true)}
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Write Review
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* Recommendations Section */}
-        <ProductRecommendations productId={productId} limit={4} />
+        <div className="mb-12">
+          <ProductRecommendations productId={productId} limit={4} />
+        </div>
+
+        {/* Reviews Section */}
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold">Customer Reviews</h2>
+          <ReviewList productId={product.id} />
+        </div>
       </div>
+
+      {/* Review Dialog */}
+      <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Write a Review</DialogTitle>
+          </DialogHeader>
+          <ReviewForm
+            productId={product.id}
+            productName={product.name}
+            onSuccess={handleReviewSuccess}
+            onCancel={() => setIsReviewDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
