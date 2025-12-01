@@ -67,7 +67,7 @@ export default function AdminInventoryWarehousePage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [warehouseFilter, setWarehouseFilter] = useState<string>('all');
-  
+
   // Stock dialog
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
@@ -124,7 +124,7 @@ export default function AdminInventoryWarehousePage() {
       setFilteredStocks([]);
       return;
     }
-    
+
     let filtered = [...productStocks];
 
     if (searchQuery) {
@@ -177,7 +177,7 @@ export default function AdminInventoryWarehousePage() {
       });
 
       if (!response.ok) throw new Error('Failed to update stock');
-      
+
       toast.success('Stock updated successfully');
       setStockDialogOpen(false);
       fetchData();
@@ -228,7 +228,7 @@ export default function AdminInventoryWarehousePage() {
         const data = await response.json();
         throw new Error(data.error || 'Failed to transfer stock');
       }
-      
+
       toast.success('Stock transferred successfully');
       setTransferDialogOpen(false);
       fetchData();
@@ -259,7 +259,7 @@ export default function AdminInventoryWarehousePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />
 
@@ -522,7 +522,7 @@ export default function AdminInventoryWarehousePage() {
                         </SelectItem>
                       ))
                   ) : (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="placeholder" disabled>
                       Select source warehouse first
                     </SelectItem>
                   )}
