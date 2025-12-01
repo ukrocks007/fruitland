@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import { Navbar } from '@/components/navbar';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,7 +69,8 @@ export default function AdminExportPage() {
       window.URL.revokeObjectURL(url);
 
       toast.success('Orders exported successfully');
-    } catch {
+    } catch (error) {
+      console.error('Error exporting orders:', error);
       toast.error('Failed to export orders');
     } finally {
       setExportingOrders(false);
@@ -97,7 +97,8 @@ export default function AdminExportPage() {
       window.URL.revokeObjectURL(url);
 
       toast.success('Customers exported successfully');
-    } catch {
+    } catch (error) {
+      console.error('Error exporting customers:', error);
       toast.error('Failed to export customers');
     } finally {
       setExportingCustomers(false);
@@ -124,7 +125,8 @@ export default function AdminExportPage() {
       window.URL.revokeObjectURL(url);
 
       toast.success('Inventory exported successfully');
-    } catch {
+    } catch (error) {
+      console.error('Error exporting inventory:', error);
       toast.error('Failed to export inventory');
     } finally {
       setExportingInventory(false);
@@ -151,7 +153,8 @@ export default function AdminExportPage() {
       window.URL.revokeObjectURL(url);
 
       toast.success('Analytics exported successfully');
-    } catch {
+    } catch (error) {
+      console.error('Error exporting analytics:', error);
       toast.error('Failed to export analytics');
     } finally {
       setExportingAnalytics(false);
