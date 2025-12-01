@@ -12,6 +12,7 @@ import {
   Settings,
   BarChart3,
   Truck,
+  RotateCcw,
   MessageSquare,
   TrendingUp,
 } from 'lucide-react';
@@ -28,6 +29,12 @@ const navItems = [
     href: '/admin/orders',
     label: 'Orders',
     icon: ShoppingCart,
+    variant: 'outline' as const,
+  },
+  {
+    href: '/admin/refunds',
+    label: 'Refunds',
+    icon: RotateCcw,
     variant: 'outline' as const,
   },
   {

@@ -52,6 +52,24 @@ export const ProductCategory = {
   EXOTIC: 'exotic',
 } as const;
 
+export const RefundStatus = {
+  REQUESTED: 'REQUESTED',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+} as const;
+
+export const RefundMethod = {
+  ONLINE: 'ONLINE',
+  COD: 'COD',
+} as const;
+
+export const PaymentMethod = {
+  ONLINE: 'ONLINE',
+  COD: 'COD',
+} as const;
+
 // Type exports
 export type RoleType = (typeof Role)[keyof typeof Role];
 export type OrderStatusType = (typeof OrderStatus)[keyof typeof OrderStatus];
@@ -61,6 +79,9 @@ export type SubscriptionPreferenceType = (typeof SubscriptionPreference)[keyof t
 export type SubscriptionStatusType = (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus];
 export type ReviewStatusType = (typeof ReviewStatus)[keyof typeof ReviewStatus];
 export type ProductCategoryType = (typeof ProductCategory)[keyof typeof ProductCategory];
+export type RefundStatusType = (typeof RefundStatus)[keyof typeof RefundStatus];
+export type RefundMethodType = (typeof RefundMethod)[keyof typeof RefundMethod];
+export type PaymentMethodType = (typeof PaymentMethod)[keyof typeof PaymentMethod];
 
 // Razorpay Types
 export interface RazorpayOptions {
