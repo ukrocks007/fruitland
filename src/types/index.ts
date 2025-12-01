@@ -39,11 +39,47 @@ export const SubscriptionStatus = {
   CANCELLED: 'CANCELLED',
 } as const;
 
+export const ReviewStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+} as const;
+
 export const ProductCategory = {
   FRESH: 'fresh',
   SEASONAL: 'seasonal',
   ORGANIC: 'organic',
   EXOTIC: 'exotic',
+} as const;
+
+// Loyalty Types
+export const LoyaltyTier = {
+  BASIC: 'BASIC',
+  SILVER: 'SILVER',
+  GOLD: 'GOLD',
+} as const;
+
+export const LoyaltyTransactionType = {
+  EARN: 'EARN',
+  REDEEM: 'REDEEM',
+} as const;
+
+export const RefundStatus = {
+  REQUESTED: 'REQUESTED',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+} as const;
+
+export const RefundMethod = {
+  ONLINE: 'ONLINE',
+  COD: 'COD',
+} as const;
+
+export const PaymentMethod = {
+  ONLINE: 'ONLINE',
+  COD: 'COD',
 } as const;
 
 // Type exports
@@ -53,7 +89,13 @@ export type PaymentStatusType = (typeof PaymentStatus)[keyof typeof PaymentStatu
 export type SubscriptionFrequencyType = (typeof SubscriptionFrequency)[keyof typeof SubscriptionFrequency];
 export type SubscriptionPreferenceType = (typeof SubscriptionPreference)[keyof typeof SubscriptionPreference];
 export type SubscriptionStatusType = (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus];
+export type ReviewStatusType = (typeof ReviewStatus)[keyof typeof ReviewStatus];
 export type ProductCategoryType = (typeof ProductCategory)[keyof typeof ProductCategory];
+export type LoyaltyTierType = (typeof LoyaltyTier)[keyof typeof LoyaltyTier];
+export type LoyaltyTransactionTypeType = (typeof LoyaltyTransactionType)[keyof typeof LoyaltyTransactionType];
+export type RefundStatusType = (typeof RefundStatus)[keyof typeof RefundStatus];
+export type RefundMethodType = (typeof RefundMethod)[keyof typeof RefundMethod];
+export type PaymentMethodType = (typeof PaymentMethod)[keyof typeof PaymentMethod];
 
 // Razorpay Types
 export interface RazorpayOptions {
@@ -223,4 +265,67 @@ export interface ProductFormData {
   stock: number;
   isAvailable: boolean;
   isSeasonal: boolean;
+}
+
+// Loyalty Types
+export interface LoyaltyTransaction {
+  id: string;
+  userId: string;
+  orderId: string | null;
+  type: LoyaltyTransactionTypeType;
+  points: number;
+  description: string;
+  createdAt: Date;
+  order?: {
+    orderNumber: string;
+  } | null;
+}
+
+export interface LoyaltyInfo {
+  pointsBalance: number;
+  loyaltyTier: LoyaltyTierType;
+  transactions: LoyaltyTransaction[];
+}
+
+export interface LoyaltySettings {
+  pointsPerRupee: number;
+  minRedeemablePoints: number;
+  pointValueInRupees: number;
+  silverTierThreshold: number;
+  goldTierThreshold: number;
+}
+
+// Review Types
+export interface Review {
+  id: string;
+  productId: string;
+  userId: string;
+  rating: number;
+  title?: string | null;
+  comment: string;
+  verifiedPurchase: boolean;
+  status: ReviewStatusType;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  user?: {
+    id: string;
+    name?: string | null;
+  };
+  product?: {
+    id: string;
+    name: string;
+    image: string;
+  };
+}
+
+export interface ReviewFormData {
+  rating: number;
+  title?: string;
+  comment: string;
+}
+
+export interface ReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  ratingDistribution: Record<number, number>;
 }
