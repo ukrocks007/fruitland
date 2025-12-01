@@ -218,7 +218,7 @@ export async function POST(
         title: title?.trim() || null,
         comment: comment.trim(),
         verifiedPurchase: !!hasPurchased,
-        status: 'PENDING',
+        status: ReviewStatus.PENDING,
       },
       include: {
         user: {
