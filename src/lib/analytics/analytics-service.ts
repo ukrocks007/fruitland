@@ -489,7 +489,6 @@ export async function calculateSummary(): Promise<AdvancedAnalyticsSummary> {
     activeSubscriptions,
     cancelledSubscriptionsLastMonth,
     activeCustomers,
-    ,
     paidOrders,
   ] = await Promise.all([
     // Total customers
@@ -528,17 +527,6 @@ export async function calculateSummary(): Promise<AdvancedAnalyticsSummary> {
         },
       },
     }),
-    // All orders for this month (skipped, using paidOrders instead)
-    prisma.order.findMany({
-      where: {
-        createdAt: { gte: lastMonthStart },
-        paymentStatus: 'PAID',
-      },
-      select: {
-        totalAmount: true,
-        userId: true,
-      },
-    }),
     // All paid orders
     prisma.order.findMany({
       where: { paymentStatus: 'PAID' },
@@ -569,9 +557,11 @@ export async function calculateSummary(): Promise<AdvancedAnalyticsSummary> {
     ? paidOrders.length / customersWithOrders
     : 0;
 
-  // Simple CLV calculation for projection
-  const clvData = await calculateCLV();
-  const averageCLV = clvData.averageCLV;
+  // Calculate average CLV using a simplified formula
+  // CLV = Average Order Value × Purchase Frequency × Estimated Lifespan
+  const purchaseFrequency = averageOrdersPerCustomer / 12; // monthly frequency
+  const estimatedLifespanMonths = 24; // 2-year estimated lifespan
+  const averageCLV = averageOrderValue * purchaseFrequency * estimatedLifespanMonths;
 
   // Lifetime revenue projection (average CLV × total customers)
   const lifetimeRevenueProjection = averageCLV * totalCustomers;
