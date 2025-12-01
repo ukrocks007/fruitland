@@ -123,8 +123,9 @@ export async function POST(request: NextRequest) {
     const discountAmount = subtotal * (bulkDiscountPercent / 100);
     const totalAmount = subtotal - discountAmount;
 
-    // Generate order number
-    const orderNumber = `BULK-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    // Generate order number using crypto for better uniqueness
+    const randomPart = crypto.randomUUID().split('-')[0].toUpperCase();
+    const orderNumber = `BULK-${Date.now()}-${randomPart}`;
 
     // Create bulk order (payment pending until admin confirms)
     const order = await prisma.order.create({

@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role, BulkOrderStatus } from '@/types';
 
+// GST rate for bulk orders (configurable)
+const BULK_ORDER_GST_RATE = Number(process.env.BULK_ORDER_GST_RATE) || 18;
+
 // PATCH - Update bulk order status (approve/reject/update)
 export async function PATCH(
   request: NextRequest,
@@ -156,8 +159,8 @@ export async function GET(
       const discountPercent = order.bulkDiscountPercent || 0;
       const discountAmount = subtotal * (discountPercent / 100);
       const taxableAmount = subtotal - discountAmount;
-      // GST calculation (assuming 18% for food items in India, can be adjusted)
-      const gstRate = order.bulkCustomerGST ? 18 : 0; // Apply GST only if GST number provided
+      // GST calculation - Apply GST only if GST number provided
+      const gstRate = order.bulkCustomerGST ? BULK_ORDER_GST_RATE : 0;
       const gstAmount = taxableAmount * (gstRate / 100);
       const grandTotal = taxableAmount + gstAmount;
 
