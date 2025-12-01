@@ -52,6 +52,15 @@ export const ProductCategory = {
   EXOTIC: 'exotic',
 } as const;
 
+// Recommendation reason tags
+export const RecommendationReason = {
+  FREQUENTLY_BOUGHT_TOGETHER: 'frequently_bought_together',
+  TRENDING: 'trending',
+  BASED_ON_HISTORY: 'based_on_history',
+  FREQUENTLY_REORDERED: 'frequently_reordered',
+  SAME_CATEGORY: 'same_category',
+} as const;
+
 export const BulkOrderStatus = {
   PENDING_APPROVAL: 'PENDING_APPROVAL',
   APPROVED: 'APPROVED',
@@ -98,6 +107,7 @@ export type SubscriptionPreferenceType = (typeof SubscriptionPreference)[keyof t
 export type SubscriptionStatusType = (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus];
 export type ReviewStatusType = (typeof ReviewStatus)[keyof typeof ReviewStatus];
 export type ProductCategoryType = (typeof ProductCategory)[keyof typeof ProductCategory];
+export type RecommendationReasonType = (typeof RecommendationReason)[keyof typeof RecommendationReason];
 export type BulkOrderStatusType = (typeof BulkOrderStatus)[keyof typeof BulkOrderStatus];
 export type LoyaltyTierType = (typeof LoyaltyTier)[keyof typeof LoyaltyTier];
 export type LoyaltyTransactionTypeType = (typeof LoyaltyTransactionType)[keyof typeof LoyaltyTransactionType];
@@ -156,6 +166,11 @@ export interface ProductWithStock {
   stock: number;
   isAvailable: boolean;
   isSeasonal: boolean;
+}
+
+// Recommendation Types
+export interface RecommendedProduct extends ProductWithStock {
+  reasonTag: RecommendationReasonType;
 }
 
 // Cart Types

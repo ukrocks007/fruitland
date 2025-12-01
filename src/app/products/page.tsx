@@ -39,10 +39,10 @@ export default function ProductsPage() {
   const fetchProducts = async (category?: string) => {
     setLoading(true);
     try {
-      const url = category && category !== 'all' 
+      const url = category && category !== 'all'
         ? `/api/products?category=${category}&available=true`
         : '/api/products?available=true';
-      
+
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
@@ -91,10 +91,10 @@ export default function ProductsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold mb-8">Our Products</h1>
-        
+
         {/* Category Filter */}
         <div className="flex flex-wrap gap-2 mb-8">
           {categories.map((cat) => (
@@ -131,7 +131,10 @@ export default function ProductsPage() {
                     </Badge>
                   )}
                 </div>
-                <CardHeader>
+                <CardHeader
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/products/${product.id}`)}
+                >
                   <CardTitle className="text-lg">{product.name}</CardTitle>
                   <CardDescription className="line-clamp-2">
                     {product.description}
@@ -151,8 +154,8 @@ export default function ProductsPage() {
                   </p>
                 </CardContent>
                 <CardFooter>
-                  <Button 
-                    className="w-full" 
+                  <Button
+                    className="w-full"
                     onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                     disabled={product.stock === 0}
                   >

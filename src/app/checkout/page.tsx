@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { CartRecommendations } from '@/components/CartRecommendations';
 import { toast } from 'sonner';
 import { Loader2, MapPin, Plus, Star } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -731,6 +732,14 @@ export default function CheckoutPage() {
                 </Button>
               </CardFooter>
             </Card>
+
+            {/* Checkout Recommendations */}
+            <CartRecommendations
+              cartProductIds={cartItems.map((item) => item.id)}
+              title="Add before checkout"
+              limit={4}
+              onAddToCart={loadData}
+            />
           </div>
         </div>
       </div>

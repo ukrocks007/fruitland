@@ -1,16 +1,18 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, use } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Navbar } from '@/components/navbar';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ReviewList } from '@/components/review-list';
 import { ReviewForm } from '@/components/review-form';
 import { StarRating } from '@/components/ui/star-rating';
+import { ProductRecommendations } from '@/components/ProductRecommendations';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, ShoppingCart, ArrowLeft, MessageSquare } from 'lucide-react';
+import { Loader2, ShoppingCart, ArrowLeft, MessageSquare, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
 
@@ -31,18 +33,22 @@ interface ReviewStats {
   totalReviews: number;
 }
 
-export default function ProductDetailPage() {
-  const params = useParams();
+export default function ProductDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id: productId } = use(params);
   const router = useRouter();
   const { data: session } = useSession();
+
   const [product, setProduct] = useState<Product | null>(null);
   const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
-
-  const productId = params.id as string;
 
   const fetchProduct = useCallback(async () => {
     try {
@@ -78,8 +84,17 @@ export default function ProductDetailPage() {
       await Promise.all([fetchProduct(), fetchReviewStats()]);
       setLoading(false);
     };
-    loadData();
-  }, [fetchProduct, fetchReviewStats]);
+    if (productId) {
+      loadData();
+    }
+  }, [productId, fetchProduct, fetchReviewStats]);
+
+  const handleQuantityChange = (delta: number) => {
+    const newQuantity = quantity + delta;
+    if (newQuantity >= 1 && newQuantity <= (product?.stock || 1)) {
+      setQuantity(newQuantity);
+    }
+  };
 
   const addToCart = async () => {
     if (!product) return;
@@ -91,7 +106,7 @@ export default function ProductDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productId: product.id,
-          quantity: 1,
+          quantity,
         }),
       });
 
@@ -102,7 +117,7 @@ export default function ProductDetailPage() {
       }
 
       window.dispatchEvent(new Event('cartUpdated'));
-      toast.success('Added to cart!');
+      toast.success(`${product.name} added to cart!`);
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error('Please sign in to add items to cart');
@@ -133,8 +148,11 @@ export default function ProductDetailPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-gray-600">Product not found</p>
+        <div className="container mx-auto px-4 py-16 text-center">
+          <p className="text-gray-600 text-lg">Product not found</p>
+          <Button onClick={() => router.push('/products')} className="mt-4">
+            Back to Products
+          </Button>
         </div>
       </div>
     );
@@ -152,7 +170,7 @@ export default function ProductDetailPage() {
           className="mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Products
+          Back
         </Button>
 
         {/* Product Details */}
@@ -204,10 +222,36 @@ export default function ProductDetailPage() {
                 ₹{product.price}
               </span>
               <p className="text-sm text-gray-500 mt-1">
-                {product.stock > 0 
-                  ? `${product.stock} items in stock` 
+                {product.stock > 0
+                  ? `${product.stock} items in stock`
                   : 'Out of stock'}
               </p>
+            </div>
+
+            {/* Quantity Selector */}
+            <div className="flex items-center gap-4 mb-6">
+              <span className="text-gray-700 font-medium">Quantity:</span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleQuantityChange(-1)}
+                  disabled={quantity <= 1}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <span className="w-12 text-center font-semibold">
+                  {quantity}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleQuantityChange(1)}
+                  disabled={quantity >= product.stock}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="flex gap-4">
@@ -224,7 +268,7 @@ export default function ProductDetailPage() {
                 )}
                 {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
               </Button>
-              
+
               {session && !hasReviewed && (
                 <Button
                   size="lg"
@@ -237,6 +281,11 @@ export default function ProductDetailPage() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Recommendations Section */}
+        <div className="mb-12">
+          <ProductRecommendations productId={productId} limit={4} />
         </div>
 
         {/* Reviews Section */}

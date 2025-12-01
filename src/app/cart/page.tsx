@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { CartRecommendations } from '@/components/CartRecommendations';
 import { Minus, Plus, Trash2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
@@ -264,6 +265,14 @@ export default function CartPage() {
                   </Button>
                 </CardFooter>
               </Card>
+
+              {/* Cart Recommendations */}
+              <CartRecommendations
+                cartProductIds={cartItems.map((item) => item.product.id)}
+                title="Add to your order"
+                limit={4}
+                onAddToCart={fetchCart}
+              />
             </div>
           </div>
         ) : (
