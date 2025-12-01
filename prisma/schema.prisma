@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -25,16 +25,18 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts              Account[]
-  sessions              Session[]
-  orders                Order[]
-  subscriptions         Subscription[]
-  addresses             Address[]
-  cartItems             CartItem[]
-  customerNotes         CustomerNote[] @relation("CustomerNotes")
-  createdNotes          CustomerNote[] @relation("CreatedNotes")
-  assignedOrders        Order[]        @relation("DeliveryPartner")
+  accounts         Account[]
+  sessions         Session[]
+  orders           Order[]
+  subscriptions    Subscription[]
+  addresses        Address[]
+  cartItems        CartItem[]
+  customerNotes    CustomerNote[] @relation("CustomerNotes")
+  createdNotes     CustomerNote[] @relation("CreatedNotes")
+  assignedOrders   Order[]        @relation("DeliveryPartner")
   loyaltyTransactions   LoyaltyTransaction[]
+  processedRefunds Refund[]       @relation("RefundProcessedBy")
+  reviews          Review[]
 
   @@index([role])
 }
@@ -109,12 +111,30 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  orderItems        OrderItem[]
-  subscriptionItems SubscriptionItem[]
-  cartItems         CartItem[]
+  orderItems         OrderItem[]
+  subscriptionItems  SubscriptionItem[]
+  cartItems          CartItem[]
+  reviews            Review[]
+  inventoryForecasts InventoryForecast[]
 
   @@index([stock, isAvailable])
   @@index([category])
+}
+
+// Inventory Forecast model for demand prediction
+model InventoryForecast {
+  id                    String   @id @default(cuid())
+  productId             String
+  forecastDate          DateTime // Date for which forecast is valid
+  expectedQuantity      Int      // Forecasted demand quantity
+  recommendedReorderQty Int      // Suggested reorder quantity
+  createdAt             DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([forecastDate])
+  @@index([productId, forecastDate])
 }
 
 // Order model
@@ -128,6 +148,7 @@ model Order {
   pointsDiscount     Float       @default(0) // Discount amount from points
   pointsEarned       Int         @default(0) // Points earned from this order
   status             String      @default("PENDING") // PENDING, PROCESSING, SHIPPED, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
+  paymentMethod     String      @default("ONLINE") // ONLINE, COD
   paymentStatus      String      @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
   razorpayOrderId    String?
   razorpayPaymentId  String?
@@ -145,6 +166,7 @@ model Order {
   deliveryPartner     User?         @relation("DeliveryPartner", fields: [deliveryPartnerId], references: [id])
   items               OrderItem[]
   loyaltyTransactions LoyaltyTransaction[]
+  refunds             Refund[]
 
   @@index([createdAt])
   @@index([paymentStatus])
@@ -304,4 +326,53 @@ model LoyaltyTransaction {
   @@index([userId])
   @@index([createdAt])
   @@index([type])
+}
+
+model Refund {
+  id               String   @id @default(uuid())
+  orderId          String
+  refundAmount     Float
+  refundReason     String
+  status           String   @default("REQUESTED") // REQUESTED, APPROVED, REJECTED, COMPLETED, FAILED
+  refundMethod     String   // ONLINE, COD
+  razorpayRefundId String?
+  processedBy      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  processedByUser  User?    @relation("RefundProcessedBy", fields: [processedBy], references: [id])
+
+  @@index([orderId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Review status enum
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Customer review model
+model Review {
+  id              String       @id @default(uuid())
+  productId       String
+  userId          String
+  rating          Int          // 1-5 stars
+  title           String?
+  comment         String
+  verifiedPurchase Boolean     @default(false)
+  status          ReviewStatus @default(PENDING)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId]) // Prevent duplicate reviews
+  @@index([productId, status])
+  @@index([userId])
+  @@index([status])
 }

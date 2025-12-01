@@ -6,9 +6,10 @@ import { Navbar } from '@/components/navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { OrderItemWithReview } from '@/components/order-item-with-review';
 
-async function getUserOrders(userId: string) {
-  return prisma.order.findMany({
+async function getUserOrdersWithReviews(userId: string) {
+  const orders = await prisma.order.findMany({
     where: { userId },
     include: {
       items: {
@@ -22,6 +23,25 @@ async function getUserOrders(userId: string) {
       createdAt: 'desc',
     },
   });
+
+  // Get user's reviews for all products they've ordered
+  const productIds = orders.flatMap(order => order.items.map(item => item.productId));
+  const reviews = await prisma.review.findMany({
+    where: {
+      userId,
+      productId: { in: productIds },
+    },
+    select: {
+      id: true,
+      productId: true,
+      rating: true,
+    },
+  });
+
+  // Create a map of productId to review for quick lookup
+  const reviewMap = new Map(reviews.map(review => [review.productId, review]));
+
+  return { orders, reviewMap };
 }
 
 export default async function OrdersPage() {
@@ -31,7 +51,7 @@ export default async function OrdersPage() {
     redirect('/auth/signin');
   }
 
-  const orders = await getUserOrders(session.user.id);
+  const { orders, reviewMap } = await getUserOrdersWithReviews(session.user.id);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -94,15 +114,12 @@ export default async function OrdersPage() {
                   {/* Order Items */}
                   <div className="space-y-3 mb-4">
                     {order.items.map((item) => (
-                      <div key={item.id} className="flex justify-between items-center border-b pb-2">
-                        <div>
-                          <p className="font-medium">{item.product.name}</p>
-                          <p className="text-sm text-gray-600">
-                            Quantity: {item.quantity} × ₹{item.price}
-                          </p>
-                        </div>
-                        <p className="font-semibold">₹{(item.quantity * item.price).toFixed(2)}</p>
-                      </div>
+                      <OrderItemWithReview
+                        key={item.id}
+                        item={item}
+                        canReview={order.status === 'DELIVERED' && order.paymentStatus === 'PAID'}
+                        existingReview={reviewMap.get(item.productId) || null}
+                      />
                     ))}
                   </div>
 
