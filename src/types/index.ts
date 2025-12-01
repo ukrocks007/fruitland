@@ -52,6 +52,13 @@ export const ProductCategory = {
   EXOTIC: 'exotic',
 } as const;
 
+export const BulkOrderStatus = {
+  PENDING_APPROVAL: 'PENDING_APPROVAL',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  INVOICE_GENERATED: 'INVOICE_GENERATED',
+} as const;
+
 // Loyalty Types
 export const LoyaltyTier = {
   BASIC: 'BASIC',
@@ -91,6 +98,7 @@ export type SubscriptionPreferenceType = (typeof SubscriptionPreference)[keyof t
 export type SubscriptionStatusType = (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus];
 export type ReviewStatusType = (typeof ReviewStatus)[keyof typeof ReviewStatus];
 export type ProductCategoryType = (typeof ProductCategory)[keyof typeof ProductCategory];
+export type BulkOrderStatusType = (typeof BulkOrderStatus)[keyof typeof BulkOrderStatus];
 export type LoyaltyTierType = (typeof LoyaltyTier)[keyof typeof LoyaltyTier];
 export type LoyaltyTransactionTypeType = (typeof LoyaltyTransactionType)[keyof typeof LoyaltyTransactionType];
 export type RefundStatusType = (typeof RefundStatus)[keyof typeof RefundStatus];
