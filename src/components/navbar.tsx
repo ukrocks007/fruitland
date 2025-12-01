@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ShoppingCart, User, LogOut, Package, Settings } from 'lucide-react';
+import { ShoppingCart, User, LogOut, Package, Settings, Truck } from 'lucide-react';
 import { Role } from '@/types';
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,7 @@ export function Navbar() {
           const res = await fetch('/api/cart');
           if (res.ok) {
             const cart = await res.json();
-            const count = cart.reduce((total: number, item: any) => total + item.quantity, 0);
+            const count = cart.reduce((total: number, item: { quantity: number }) => total + item.quantity, 0);
             setCartCount(count);
           }
         } catch (error) {
@@ -93,6 +93,14 @@ export function Navbar() {
                   </Button>
                 </Link>
               )}
+              {session.user.role === Role.DELIVERY_PARTNER && (
+                <Link href="/delivery">
+                  <Button variant="outline" size="sm">
+                    <Truck className="h-4 w-4 mr-2" />
+                    Deliveries
+                  </Button>
+                </Link>
+              )}
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -117,6 +125,14 @@ export function Navbar() {
                       Orders
                     </Link>
                   </DropdownMenuItem>
+                  {session.user.role === Role.DELIVERY_PARTNER && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/delivery">
+                        <Truck className="h-4 w-4 mr-2" />
+                        My Deliveries
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => signOut()}>
                     <LogOut className="h-4 w-4 mr-2" />

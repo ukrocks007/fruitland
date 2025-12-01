@@ -2,12 +2,14 @@
 export const Role = {
   CUSTOMER: 'CUSTOMER',
   ADMIN: 'ADMIN',
+  DELIVERY_PARTNER: 'DELIVERY_PARTNER',
 } as const;
 
 export const OrderStatus = {
   PENDING: 'PENDING',
   PROCESSING: 'PROCESSING',
   SHIPPED: 'SHIPPED',
+  OUT_FOR_DELIVERY: 'OUT_FOR_DELIVERY',
   DELIVERED: 'DELIVERED',
   CANCELLED: 'CANCELLED',
 } as const;

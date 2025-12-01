@@ -239,6 +239,7 @@ export default function AdminUsersPage() {
                   <SelectItem value="all">All Roles</SelectItem>
                   <SelectItem value="CUSTOMER">Customer</SelectItem>
                   <SelectItem value="ADMIN">Admin</SelectItem>
+                  <SelectItem value="DELIVERY_PARTNER">Delivery Partner</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -276,12 +277,13 @@ export default function AdminUsersPage() {
                             value={user.role}
                             onValueChange={(value) => handleRoleChange(user.id, value)}
                           >
-                            <SelectTrigger className="w-[120px]">
+                            <SelectTrigger className="w-[150px]">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="CUSTOMER">Customer</SelectItem>
                               <SelectItem value="ADMIN">Admin</SelectItem>
+                              <SelectItem value="DELIVERY_PARTNER">Delivery Partner</SelectItem>
                             </SelectContent>
                           </Select>
                         </TableCell>

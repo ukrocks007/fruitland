@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@/types';
 
-// PATCH - Update order status
+// PATCH - Update order status, payment status, or assign delivery partner
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -17,15 +17,49 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const { status, paymentStatus } = await request.json();
+    const { status, paymentStatus, deliveryPartnerId } = await request.json();
 
-    const updateData: any = {};
+    const updateData: {
+      status?: string;
+      paymentStatus?: string;
+      deliveryPartnerId?: string | null;
+    } = {};
+
     if (status) updateData.status = status;
     if (paymentStatus) updateData.paymentStatus = paymentStatus;
+    if (deliveryPartnerId !== undefined) {
+      // Verify the delivery partner exists and has the correct role
+      if (deliveryPartnerId !== null) {
+        const deliveryPartner = await prisma.user.findFirst({
+          where: {
+            id: deliveryPartnerId,
+            role: Role.DELIVERY_PARTNER,
+          },
+        });
+
+        if (!deliveryPartner) {
+          return NextResponse.json(
+            { error: 'Invalid delivery partner' },
+            { status: 400 }
+          );
+        }
+      }
+      updateData.deliveryPartnerId = deliveryPartnerId;
+    }
 
     const order = await prisma.order.update({
       where: { id },
       data: updateData,
+      include: {
+        deliveryPartner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+      },
     });
 
     return NextResponse.json(order);
