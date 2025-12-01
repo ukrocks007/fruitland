@@ -114,6 +114,26 @@ export async function DELETE(
       );
     }
 
+    // Check if warehouse has stock records with non-zero quantity
+    const stocksWithQuantity = await prisma.productStock.count({
+      where: { 
+        warehouseId: id,
+        quantity: { gt: 0 },
+      },
+    });
+
+    if (stocksWithQuantity > 0) {
+      return NextResponse.json(
+        { error: 'Cannot delete warehouse with existing stock. Please transfer or clear stock first.' },
+        { status: 400 }
+      );
+    }
+
+    // Delete any empty stock records first
+    await prisma.productStock.deleteMany({
+      where: { warehouseId: id },
+    });
+
     await prisma.warehouse.delete({
       where: { id },
     });

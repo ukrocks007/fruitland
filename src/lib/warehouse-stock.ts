@@ -24,14 +24,10 @@ export async function findWarehouseWithStock(
   items: StockAllocationItem[],
   deliveryPincode?: string
 ): Promise<string | null> {
-  // Get all active warehouses, optionally prioritizing by pincode match
+  // Get all active warehouses
   const warehouses = await prisma.warehouse.findMany({
     where: { isActive: true },
-    orderBy: [
-      // Simple priority: exact pincode match first, then by name
-      { pincode: deliveryPincode ? 'asc' : 'asc' },
-      { name: 'asc' },
-    ],
+    orderBy: { name: 'asc' },
   });
 
   // Sort warehouses to prioritize exact pincode match if delivery pincode is provided

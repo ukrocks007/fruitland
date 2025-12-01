@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createRazorpayOrder } from '@/lib/razorpay';
 import { prisma } from '@/lib/prisma';
-import { findWarehouseWithStock, allocateStock, confirmStockAllocation } from '@/lib/warehouse-stock';
+import { findWarehouseWithStock, allocateStock, confirmStockAllocation, releaseStock } from '@/lib/warehouse-stock';
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,7 +78,13 @@ export async function POST(request: NextRequest) {
       };
     });
 
+    // Generate order number
+    const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
     // If warehouse found, allocate stock from warehouse
+    // Note: We reserve stock first, then create order. If order creation fails,
+    // the reserved stock will be released in the catch block.
+    let stockAllocated = false;
     if (warehouseId) {
       const allocationResult = await allocateStock(warehouseId, stockItems);
       if (!allocationResult.success) {
@@ -87,46 +93,46 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
+      stockAllocated = true;
     }
 
-    // Generate order number
-    const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-
-    // Create order in database
-    const order = await prisma.order.create({
-      data: {
-        userId: session.user.id,
-        addressId,
-        orderNumber,
-        totalAmount,
-        status: 'PENDING',
-        paymentStatus: paymentMethod === 'COD' ? 'PENDING' : 'PENDING',
-        subscriptionId: subscriptionId || null,
-        warehouseId: warehouseId || null,
-        items: {
-          create: orderItems,
-        },
-      },
-    });
-
-    // If COD, skip Razorpay and return order details
-    if (paymentMethod === 'COD') {
-      // Update product stock (global) and confirm warehouse allocation
-      for (const item of orderItems) {
-        await prisma.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: {
-              decrement: item.quantity,
-            },
+    try {
+      // Create order in database
+      const order = await prisma.order.create({
+        data: {
+          userId: session.user.id,
+          addressId,
+          orderNumber,
+          totalAmount,
+          status: 'PENDING',
+          paymentStatus: paymentMethod === 'COD' ? 'PENDING' : 'PENDING',
+          subscriptionId: subscriptionId || null,
+          warehouseId: warehouseId || null,
+          items: {
+            create: orderItems,
           },
-        });
-      }
+        },
+      });
 
-      // Confirm warehouse stock allocation if applicable
-      if (warehouseId) {
-        await confirmStockAllocation(warehouseId, stockItems);
-      }
+      // If COD, skip Razorpay and return order details
+      if (paymentMethod === 'COD') {
+        // Update global product stock for backward compatibility with existing stock tracking
+        // The warehouse ProductStock tracks the detailed per-warehouse inventory
+        for (const item of orderItems) {
+          await prisma.product.update({
+            where: { id: item.productId },
+            data: {
+              stock: {
+                decrement: item.quantity,
+              },
+            },
+          });
+        }
+
+        // Confirm warehouse stock allocation if applicable
+        if (warehouseId) {
+          await confirmStockAllocation(warehouseId, stockItems);
+        }
 
       return NextResponse.json({
         orderId: order.id,
@@ -181,6 +187,17 @@ export async function POST(request: NextRequest) {
       currency: razorpayOrder.currency,
       warehouseId,
     });
+    } catch (innerError) {
+      // If order creation or processing fails, release the allocated stock
+      if (stockAllocated && warehouseId) {
+        try {
+          await releaseStock(warehouseId, stockItems);
+        } catch (releaseError) {
+          console.error('Failed to release stock after order creation failure:', releaseError);
+        }
+      }
+      throw innerError;
+    }
   } catch (error: unknown) {
     console.error('Error creating order:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to create order';

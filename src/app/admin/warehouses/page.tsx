@@ -369,7 +369,14 @@ export default function AdminWarehousesPage() {
                               variant="destructive"
                               size="sm"
                               onClick={() => handleDelete(warehouse.id)}
-                              disabled={warehouse._count.orders > 0}
+                              disabled={warehouse._count.orders > 0 || warehouse._count.productStocks > 0}
+                              title={
+                                warehouse._count.orders > 0 
+                                  ? 'Cannot delete: has orders' 
+                                  : warehouse._count.productStocks > 0 
+                                    ? 'Cannot delete: has stock records' 
+                                    : 'Delete warehouse'
+                              }
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
