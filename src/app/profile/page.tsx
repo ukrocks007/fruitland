@@ -365,7 +365,7 @@ export default function ProfilePage() {
                       <div className="text-center">
                         <p className="text-sm text-gray-500">Earn Rate</p>
                         <p className="font-semibold">
-                          {Math.round(1 / loyaltyInfo.settings.pointsPerRupee)} = 1 pt
+                          ₹{loyaltyInfo.settings.pointsPerRupee > 0 ? Math.round(1 / loyaltyInfo.settings.pointsPerRupee) : 0} = 1 pt
                         </p>
                         <p className="text-xs text-gray-400">rupees per point</p>
                       </div>

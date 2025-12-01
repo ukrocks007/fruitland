@@ -94,6 +94,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Validate point value is positive to avoid division by zero
+      if (settings.pointValueInRupees <= 0) {
+        return NextResponse.json(
+          { error: 'Invalid loyalty point configuration' },
+          { status: 500 }
+        );
+      }
+
       pointsRedeemed = redeemPoints;
       pointsDiscount = redeemPoints * settings.pointValueInRupees;
       

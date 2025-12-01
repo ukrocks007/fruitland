@@ -3,9 +3,9 @@ import { LoyaltyTier, LoyaltyTransactionType } from '@/types';
 
 // Default loyalty settings
 export const DEFAULT_LOYALTY_SETTINGS = {
-  POINTS_PER_RUPEE: 0.01, // 1 point per ₹100 spent (0.01 points per rupee)
+  POINTS_PER_RUPEE: 0.01, // 0.01 points per rupee = 1 point per ₹100 spent
   MIN_REDEEMABLE_POINTS: 100, // Minimum points required to redeem
-  POINT_VALUE_IN_RUPEES: 1, // 1 point = ₹1
+  POINT_VALUE_IN_RUPEES: 1, // 1 point = ₹1 when redeeming (must be > 0)
   SILVER_TIER_THRESHOLD: 500, // Points needed for Silver tier
   GOLD_TIER_THRESHOLD: 2000, // Points needed for Gold tier
 };

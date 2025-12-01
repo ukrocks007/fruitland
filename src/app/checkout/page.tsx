@@ -220,7 +220,8 @@ export default function CheckoutPage() {
   const handlePointsChange = (value: string) => {
     const points = parseInt(value, 10) || 0;
     const maxPoints = loyaltyInfo?.pointsBalance || 0;
-    const maxRedeemableForOrder = Math.floor(calculateSubtotal() / (loyaltyInfo?.settings.pointValueInRupees || 1));
+    const pointValue = loyaltyInfo?.settings.pointValueInRupees || 1;
+    const maxRedeemableForOrder = pointValue > 0 ? Math.floor(calculateSubtotal() / pointValue) : 0;
     const effectiveMax = Math.min(maxPoints, maxRedeemableForOrder);
     setPointsToRedeem(Math.min(Math.max(0, points), effectiveMax));
   };
