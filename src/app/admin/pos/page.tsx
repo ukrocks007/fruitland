@@ -324,7 +324,7 @@ export default function AdminPOSPage() {
                     {searchQuery ? 'No products found' : 'No products available'}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 p-2 pt-3">
                     {filteredProducts.map((product) => {
                       const cartItem = cart.find(item => item.product.id === product.id);
                       const inCart = !!cartItem;
