@@ -20,6 +20,8 @@ model User {
   password      String?
   phone         String?
   role          String    @default("CUSTOMER") // CUSTOMER, ADMIN, or DELIVERY_PARTNER
+  pointsBalance Int       @default(0) // Loyalty points balance
+  loyaltyTier   String    @default("BASIC") // BASIC, SILVER, GOLD
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -32,6 +34,9 @@ model User {
   customerNotes    CustomerNote[] @relation("CustomerNotes")
   createdNotes     CustomerNote[] @relation("CreatedNotes")
   assignedOrders   Order[]        @relation("DeliveryPartner")
+  loyaltyTransactions   LoyaltyTransaction[]
+  processedRefunds Refund[]       @relation("RefundProcessedBy")
+  reviews          Review[]
 
   @@index([role])
 }
@@ -106,30 +111,54 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  orderItems        OrderItem[]
-  subscriptionItems SubscriptionItem[]
-  cartItems         CartItem[]
+  orderItems         OrderItem[]
+  subscriptionItems  SubscriptionItem[]
+  cartItems          CartItem[]
+  productStocks      ProductStock[]
+  reviews            Review[]
+  inventoryForecasts InventoryForecast[]
 
   @@index([stock, isAvailable])
   @@index([category])
 }
 
+// Inventory Forecast model for demand prediction
+model InventoryForecast {
+  id                    String   @id @default(cuid())
+  productId             String
+  forecastDate          DateTime // Date for which forecast is valid
+  expectedQuantity      Int      // Forecasted demand quantity
+  recommendedReorderQty Int      // Suggested reorder quantity
+  createdAt             DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([forecastDate])
+  @@index([productId, forecastDate])
+}
+
 // Order model
 model Order {
-  id                String      @id @default(cuid())
-  userId            String
-  addressId         String
-  orderNumber       String      @unique
-  totalAmount       Float
-  status            String      @default("PENDING") // PENDING, PROCESSING, SHIPPED, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
-  paymentStatus     String      @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
-  razorpayOrderId   String?
-  razorpayPaymentId String?
-  razorpaySignature String?
-  subscriptionId    String?
-  notes             String?
-  deliveryPartnerId String?
-  deliveryNotes     String?
+  id                 String      @id @default(cuid())
+  userId             String
+  addressId          String
+  orderNumber        String      @unique
+  totalAmount        Float
+  pointsRedeemed     Int         @default(0) // Loyalty points redeemed for this order
+  pointsDiscount     Float       @default(0) // Discount amount from points
+  pointsEarned       Int         @default(0) // Points earned from this order
+  status             String      @default("PENDING") // PENDING, PROCESSING, SHIPPED, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
+  paymentMethod      String      @default("ONLINE") // ONLINE, COD
+  paymentStatus      String      @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
+  razorpayOrderId    String?
+  razorpayPaymentId  String?
+  razorpaySignature  String?
+  subscriptionId     String?
+  notes              String?
+  deliveryPartnerId  String?
+  deliveryNotes      String?
+  warehouseId        String?
   // Bulk order fields
   isBulkOrder          Boolean  @default(false)
   bulkCustomerName     String?  // Company or customer name
@@ -138,14 +167,17 @@ model Order {
   bulkDiscountPercent  Float?   // Discount percentage applied
   bulkOrderNote        String?  // Additional notes for bulk order
   bulkOrderStatus      String?  // PENDING_APPROVAL, APPROVED, REJECTED, INVOICE_GENERATED
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  address         Address       @relation(fields: [addressId], references: [id])
-  subscription    Subscription? @relation(fields: [subscriptionId], references: [id])
-  deliveryPartner User?         @relation("DeliveryPartner", fields: [deliveryPartnerId], references: [id])
-  items           OrderItem[]
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  address             Address       @relation(fields: [addressId], references: [id])
+  subscription        Subscription? @relation(fields: [subscriptionId], references: [id])
+  deliveryPartner     User?         @relation("DeliveryPartner", fields: [deliveryPartnerId], references: [id])
+  warehouse           Warehouse?    @relation(fields: [warehouseId], references: [id])
+  items               OrderItem[]
+  loyaltyTransactions LoyaltyTransaction[]
+  refunds             Refund[]
 
   @@index([createdAt])
   @@index([paymentStatus])
@@ -153,6 +185,7 @@ model Order {
   @@index([createdAt, paymentStatus])
   @@index([deliveryPartnerId])
   @@index([isBulkOrder])
+  @@index([warehouseId])
 }
 
 model OrderItem {
@@ -289,3 +322,113 @@ model AnalyticsCache {
   @@index([key])
   @@index([expiresAt])
 }
+
+// Warehouse model for multi-warehouse inventory
+model Warehouse {
+  id            String   @id @default(cuid())
+  name          String
+  city          String
+  pincode       String
+  zone          String?
+  contactName   String?
+  contactPhone  String?
+  contactEmail  String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  productStocks ProductStock[]
+  orders        Order[]
+
+  @@index([city])
+  @@index([pincode])
+  @@index([zone])
+  @@index([isActive])
+}
+
+// ProductStock model for tracking stock per warehouse
+model ProductStock {
+  id               String   @id @default(cuid())
+  warehouseId      String
+  productId        String
+  quantity         Int      @default(0)
+  reservedQuantity Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([warehouseId, productId])
+  @@index([warehouseId])
+  @@index([productId])
+  @@index([quantity])
+}
+
+// Loyalty Transaction model for tracking points earned/redeemed
+model LoyaltyTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  orderId     String?
+  type        String   // EARN or REDEEM
+  points      Int      // Number of points (positive for earn, positive for redeem as it tracks absolute value)
+  description String   // Description of transaction
+  createdAt   DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([type])
+}
+
+model Refund {
+  id               String   @id @default(uuid())
+  orderId          String
+  refundAmount     Float
+  refundReason     String
+  status           String   @default("REQUESTED") // REQUESTED, APPROVED, REJECTED, COMPLETED, FAILED
+  refundMethod     String   // ONLINE, COD
+  razorpayRefundId String?
+  processedBy      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  processedByUser  User?    @relation("RefundProcessedBy", fields: [processedBy], references: [id])
+
+  @@index([orderId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Review status enum
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Customer review model
+model Review {
+  id              String       @id @default(uuid())
+  productId       String
+  userId          String
+  rating          Int          // 1-5 stars
+  title           String?
+  comment         String
+  verifiedPurchase Boolean     @default(false)
+  status          ReviewStatus @default(PENDING)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId]) // Prevent duplicate reviews
+  @@index([productId, status])
+  @@index([userId])
+  @@index([status])
+}
+
