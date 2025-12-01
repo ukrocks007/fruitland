@@ -46,6 +46,15 @@ export const ProductCategory = {
   EXOTIC: 'exotic',
 } as const;
 
+// Recommendation reason tags
+export const RecommendationReason = {
+  FREQUENTLY_BOUGHT_TOGETHER: 'frequently_bought_together',
+  TRENDING: 'trending',
+  BASED_ON_HISTORY: 'based_on_history',
+  FREQUENTLY_REORDERED: 'frequently_reordered',
+  SAME_CATEGORY: 'same_category',
+} as const;
+
 // Type exports
 export type RoleType = (typeof Role)[keyof typeof Role];
 export type OrderStatusType = (typeof OrderStatus)[keyof typeof OrderStatus];
@@ -54,6 +63,7 @@ export type SubscriptionFrequencyType = (typeof SubscriptionFrequency)[keyof typ
 export type SubscriptionPreferenceType = (typeof SubscriptionPreference)[keyof typeof SubscriptionPreference];
 export type SubscriptionStatusType = (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus];
 export type ProductCategoryType = (typeof ProductCategory)[keyof typeof ProductCategory];
+export type RecommendationReasonType = (typeof RecommendationReason)[keyof typeof RecommendationReason];
 
 // Razorpay Types
 export interface RazorpayOptions {

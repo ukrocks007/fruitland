@@ -118,7 +118,10 @@ export default function ProductsPage() {
           <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.map((product) => (
               <Card key={product.id} className="overflow-hidden hover:shadow-lg transition">
-                <div className="relative h-48 w-full bg-gray-200">
+                <div 
+                  className="relative h-48 w-full bg-gray-200 cursor-pointer"
+                  onClick={() => router.push(`/products/${product.id}`)}
+                >
                   <Image
                     src={product.image}
                     alt={product.name}
@@ -131,7 +134,10 @@ export default function ProductsPage() {
                     </Badge>
                   )}
                 </div>
-                <CardHeader>
+                <CardHeader 
+                  className="cursor-pointer" 
+                  onClick={() => router.push(`/products/${product.id}`)}
+                >
                   <CardTitle className="text-lg">{product.name}</CardTitle>
                   <CardDescription className="line-clamp-2">
                     {product.description}
