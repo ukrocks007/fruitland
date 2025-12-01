@@ -12,6 +12,7 @@ import {
   Settings,
   BarChart3,
   Truck,
+  TrendingUp,
 } from 'lucide-react';
 
 const navItems = [
@@ -32,6 +33,12 @@ const navItems = [
     href: '/admin/analytics',
     label: 'Analytics',
     icon: BarChart3,
+    variant: 'outline' as const,
+  },
+  {
+    href: '/admin/analytics-advanced',
+    label: 'Advanced',
+    icon: TrendingUp,
     variant: 'outline' as const,
   },
   {
