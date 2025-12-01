@@ -12,6 +12,8 @@ import {
   Settings,
   BarChart3,
   Truck,
+  Warehouse,
+  Boxes,
   Download,
   RotateCcw,
   MessageSquare,
@@ -69,6 +71,18 @@ const navItems = [
     variant: 'outline' as const,
   },
   {
+    href: '/admin/warehouses',
+    label: 'Warehouses',
+    icon: Warehouse,
+    variant: 'outline' as const,
+  },
+  {
+    href: '/admin/inventory-warehouse',
+    label: 'Inventory',
+    icon: Boxes,
+    variant: 'outline' as const,
+  },
+  {
     href: '/admin/delivery-agents',
     label: 'Delivery Fleet',
     icon: Truck,
@@ -116,7 +130,7 @@ export function AdminNavigation() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
-          
+
           return (
             <Button
               key={item.href}

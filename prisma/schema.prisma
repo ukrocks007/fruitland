@@ -114,6 +114,7 @@ model Product {
   orderItems         OrderItem[]
   subscriptionItems  SubscriptionItem[]
   cartItems          CartItem[]
+  productStocks      ProductStock[]
   reviews            Review[]
   inventoryForecasts InventoryForecast[]
 
@@ -148,7 +149,7 @@ model Order {
   pointsDiscount     Float       @default(0) // Discount amount from points
   pointsEarned       Int         @default(0) // Points earned from this order
   status             String      @default("PENDING") // PENDING, PROCESSING, SHIPPED, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
-  paymentMethod     String      @default("ONLINE") // ONLINE, COD
+  paymentMethod      String      @default("ONLINE") // ONLINE, COD
   paymentStatus      String      @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
   razorpayOrderId    String?
   razorpayPaymentId  String?
@@ -157,6 +158,7 @@ model Order {
   notes              String?
   deliveryPartnerId  String?
   deliveryNotes      String?
+  warehouseId        String?
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
@@ -164,6 +166,7 @@ model Order {
   address             Address       @relation(fields: [addressId], references: [id])
   subscription        Subscription? @relation(fields: [subscriptionId], references: [id])
   deliveryPartner     User?         @relation("DeliveryPartner", fields: [deliveryPartnerId], references: [id])
+  warehouse           Warehouse?    @relation(fields: [warehouseId], references: [id])
   items               OrderItem[]
   loyaltyTransactions LoyaltyTransaction[]
   refunds             Refund[]
@@ -173,6 +176,7 @@ model Order {
   @@index([status])
   @@index([createdAt, paymentStatus])
   @@index([deliveryPartnerId])
+  @@index([warehouseId])
 }
 
 model OrderItem {
@@ -310,6 +314,48 @@ model AnalyticsCache {
   @@index([expiresAt])
 }
 
+// Warehouse model for multi-warehouse inventory
+model Warehouse {
+  id            String   @id @default(cuid())
+  name          String
+  city          String
+  pincode       String
+  zone          String?
+  contactName   String?
+  contactPhone  String?
+  contactEmail  String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  productStocks ProductStock[]
+  orders        Order[]
+
+  @@index([city])
+  @@index([pincode])
+  @@index([zone])
+  @@index([isActive])
+}
+
+// ProductStock model for tracking stock per warehouse
+model ProductStock {
+  id               String   @id @default(cuid())
+  warehouseId      String
+  productId        String
+  quantity         Int      @default(0)
+  reservedQuantity Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([warehouseId, productId])
+  @@index([warehouseId])
+  @@index([productId])
+  @@index([quantity])
+}
+
 // Loyalty Transaction model for tracking points earned/redeemed
 model LoyaltyTransaction {
   id          String   @id @default(cuid())
@@ -376,3 +422,4 @@ model Review {
   @@index([userId])
   @@index([status])
 }
+
