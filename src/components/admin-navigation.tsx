@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Store,
@@ -129,6 +130,44 @@ const navItems = [
 
 export function AdminNavigation() {
   const pathname = usePathname();
+  const [stats, setStats] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/admin/nav-stats');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && typeof data === 'object' && !data.error) {
+            setStats(data);
+          } else {
+            console.error('Invalid stats data received:', data);
+          }
+        } else {
+          console.error('Failed to fetch admin stats:', res.status, res.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching admin stats:', error);
+      }
+    };
+
+    fetchStats();
+
+    // Refresh stats every minute
+    const interval = setInterval(fetchStats, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const getBadgeCount = (href: string) => {
+    switch (href) {
+      case '/admin/orders': return stats.orders;
+      case '/admin/bulk-orders': return stats.bulkOrders;
+      case '/admin/refunds': return stats.refunds;
+      case '/admin/reviews': return stats.reviews;
+      case '/admin/inventory-warehouse': return stats.inventory;
+      default: return 0;
+    }
+  };
 
   return (
     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
@@ -137,17 +176,23 @@ export function AdminNavigation() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
+          const count = getBadgeCount(item.href);
 
           return (
             <Button
               key={item.href}
               asChild
               variant={isActive ? 'default' : item.variant}
-              className={`justify-start sm:justify-center ${item.className || ''}`}
+              className={`justify-start sm:justify-center relative ${item.className || ''}`}
             >
               <Link href={item.href}>
                 <Icon className="w-4 h-4 mr-2" />
                 {item.label}
+                {count > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-white">
+                    {count > 99 ? '99+' : count}
+                  </span>
+                )}
               </Link>
             </Button>
           );
