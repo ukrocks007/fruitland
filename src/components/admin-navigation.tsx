@@ -13,6 +13,7 @@ import {
   BarChart3,
   Truck,
   Download,
+  TrendingUp,
 } from 'lucide-react';
 
 const navItems = [
@@ -33,6 +34,12 @@ const navItems = [
     href: '/admin/analytics',
     label: 'Analytics',
     icon: BarChart3,
+    variant: 'outline' as const,
+  },
+  {
+    href: '/admin/forecasting',
+    label: 'Forecasting',
+    icon: TrendingUp,
     variant: 'outline' as const,
   },
   {
