@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
+import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -171,15 +172,10 @@ export default function AdminSubscriptionsPage() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Subscription Management</h1>
-            <p className="text-gray-600 mt-1">Manage all customer subscriptions</p>
-          </div>
-          <Button onClick={() => router.push('/admin')}>
-            Back to Dashboard
-          </Button>
-        </div>
+        <AdminNavigation />
+        
+        <h2 className="text-2xl font-semibold mb-2">Subscription Management</h2>
+        <p className="text-gray-600 mb-6">Manage all customer subscriptions</p>
 
         <Card>
           <CardHeader>
