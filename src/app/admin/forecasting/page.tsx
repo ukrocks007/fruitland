@@ -254,7 +254,7 @@ export default function ForecastingPage() {
                 <BarChart3 className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No forecasts yet</h3>
                 <p className="text-gray-500 mb-4">
-                  Click the &quot;Generate Forecasts&quot; button to create demand predictions
+                  Click the Generate Forecasts button to create demand predictions
                 </p>
               </div>
             ) : (

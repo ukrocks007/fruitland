@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@/types';
-import { subMonths, startOfMonth, endOfMonth, addDays, format } from 'date-fns';
+import { subMonths, startOfMonth, addDays, format } from 'date-fns';
 
 /**
  * GET: Fetch all forecasts with product info
@@ -146,14 +146,14 @@ export async function POST(request: NextRequest) {
     
     for (const item of subscriptionItems) {
       const productId = item.productId;
-      // Convert frequency to monthly multiplier
+      // Convert frequency to monthly multiplier (using 4.33 weeks per month for accuracy)
       let monthlyMultiplier = 1;
       switch (item.subscription.frequency) {
         case 'WEEKLY':
-          monthlyMultiplier = 4;
+          monthlyMultiplier = 4.33;
           break;
         case 'BIWEEKLY':
-          monthlyMultiplier = 2;
+          monthlyMultiplier = 2.17;
           break;
         case 'MONTHLY':
           monthlyMultiplier = 1;
@@ -169,7 +169,8 @@ export async function POST(request: NextRequest) {
 
     // Generate forecasts
     const forecastsToCreate = [];
-    const SAFETY_STOCK_MULTIPLIER = 1.2; // 20% buffer
+    // Safety stock multiplier can be overridden via request body, defaults to 20% buffer
+    const safetyStockMultiplier = body.safetyStockMultiplier ?? 1.2;
 
     for (const product of products) {
       const productSales = salesByProductMonth.get(product.id);
@@ -190,7 +191,7 @@ export async function POST(request: NextRequest) {
       const expectedQuantity = Math.ceil(totalMonthlyDemand);
       
       // Recommended reorder = expected demand with safety stock buffer
-      const recommendedReorderQty = Math.ceil(expectedQuantity * SAFETY_STOCK_MULTIPLIER);
+      const recommendedReorderQty = Math.ceil(expectedQuantity * safetyStockMultiplier);
       
       // Adjust for current stock
       const netReorder = Math.max(0, recommendedReorderQty - product.stock);
@@ -228,6 +229,7 @@ export async function POST(request: NextRequest) {
       parameters: {
         lookbackMonths,
         forecastDays,
+        safetyStockMultiplier,
       },
     });
   } catch (error) {
