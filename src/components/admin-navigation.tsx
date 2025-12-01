@@ -12,6 +12,7 @@ import {
   Settings,
   BarChart3,
   Truck,
+  MessageSquare,
   TrendingUp,
 } from 'lucide-react';
 
@@ -69,6 +70,12 @@ const navItems = [
     href: '/admin/products',
     label: 'Products',
     icon: LayoutDashboard,
+    variant: 'outline' as const,
+  },
+  {
+    href: '/admin/reviews',
+    label: 'Reviews',
+    icon: MessageSquare,
     variant: 'outline' as const,
   },
   {

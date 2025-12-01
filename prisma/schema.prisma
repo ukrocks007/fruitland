@@ -32,6 +32,7 @@ model User {
   customerNotes    CustomerNote[] @relation("CustomerNotes")
   createdNotes     CustomerNote[] @relation("CreatedNotes")
   assignedOrders   Order[]        @relation("DeliveryPartner")
+  reviews          Review[]
 
   @@index([role])
 }
@@ -109,6 +110,7 @@ model Product {
   orderItems         OrderItem[]
   subscriptionItems  SubscriptionItem[]
   cartItems          CartItem[]
+  reviews            Review[]
   inventoryForecasts InventoryForecast[]
 
   @@index([stock, isAvailable])
@@ -296,4 +298,33 @@ model AnalyticsCache {
 
   @@index([key])
   @@index([expiresAt])
+}
+
+// Review status enum
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Customer review model
+model Review {
+  id              String       @id @default(uuid())
+  productId       String
+  userId          String
+  rating          Int          // 1-5 stars
+  title           String?
+  comment         String
+  verifiedPurchase Boolean     @default(false)
+  status          ReviewStatus @default(PENDING)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId]) // Prevent duplicate reviews
+  @@index([productId, status])
+  @@index([userId])
+  @@index([status])
 }

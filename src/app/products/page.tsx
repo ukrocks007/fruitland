@@ -117,7 +117,7 @@ export default function ProductsPage() {
         ) : products.length > 0 ? (
           <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.map((product) => (
-              <Card key={product.id} className="overflow-hidden hover:shadow-lg transition">
+              <Card key={product.id} className="overflow-hidden hover:shadow-lg transition cursor-pointer" onClick={() => router.push(`/products/${product.id}`)}>
                 <div className="relative h-48 w-full bg-gray-200">
                   <Image
                     src={product.image}
@@ -153,7 +153,7 @@ export default function ProductsPage() {
                 <CardFooter>
                   <Button 
                     className="w-full" 
-                    onClick={() => addToCart(product)}
+                    onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                     disabled={product.stock === 0}
                   >
                     {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
