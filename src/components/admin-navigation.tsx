@@ -42,6 +42,12 @@ const navItems = [
     variant: 'outline' as const,
   },
   {
+    href: '/admin/forecasting',
+    label: 'Forecasting',
+    icon: TrendingUp,
+    variant: 'outline' as const,
+  },
+  {
     href: '/admin/subscriptions',
     label: 'Subscriptions',
     icon: Package,
