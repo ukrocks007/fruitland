@@ -45,10 +45,10 @@ export function AdminCharts({ analytics }: { analytics: AnalyticsData }) {
   } = analytics;
 
   return (
-    <div className="grid md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Revenue Over Time */}
       {revenueByMonth.length > 0 && (
-        <Card className="col-span-2">
+        <Card className="col-span-1 md:col-span-2">
           <CardHeader>
             <CardTitle>Revenue Over Time</CardTitle>
             <CardDescription>Monthly revenue trend</CardDescription>
@@ -73,9 +73,9 @@ export function AdminCharts({ analytics }: { analytics: AnalyticsData }) {
         </Card>
       )}
 
-      {/* Orders by Status */}
+      {/* Orders by Status - Full width on mobile, half on desktop */}
       {ordersByStatus.length > 0 && (
-        <Card>
+        <Card className="col-span-1">
           <CardHeader>
             <CardTitle>Orders by Status</CardTitle>
             <CardDescription>Distribution of order statuses</CardDescription>
@@ -106,9 +106,9 @@ export function AdminCharts({ analytics }: { analytics: AnalyticsData }) {
         </Card>
       )}
 
-      {/* Category Revenue */}
+      {/* Revenue by Category - Full width on mobile, half on desktop */}
       {categoryRevenue.length > 0 && (
-        <Card>
+        <Card className="col-span-1">
           <CardHeader>
             <CardTitle>Revenue by Category</CardTitle>
             <CardDescription>Sales breakdown by product category</CardDescription>
@@ -129,7 +129,7 @@ export function AdminCharts({ analytics }: { analytics: AnalyticsData }) {
 
       {/* Subscription Growth */}
       {subscriptionGrowth.length > 0 && (
-        <Card className="col-span-2">
+        <Card className="col-span-1 md:col-span-2">
           <CardHeader>
             <CardTitle>Subscription Growth</CardTitle>
             <CardDescription>Active subscriptions over time</CardDescription>
