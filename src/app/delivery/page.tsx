@@ -350,7 +350,11 @@ export default function DeliveryDashboardPage() {
                 <TableBody>
                   {filteredOrders.length > 0 ? (
                     filteredOrders.map((order) => (
-                      <TableRow key={order.id}>
+                      <TableRow
+                        key={order.id}
+                        className="cursor-pointer hover:bg-gray-100"
+                        onClick={() => openOrderDetails(order)}
+                      >
                         <TableCell className="font-medium">
                           {order.orderNumber}
                         </TableCell>
@@ -386,7 +390,10 @@ export default function DeliveryDashboardPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => openOrderDetails(order)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openOrderDetails(order);
+                            }}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>

@@ -313,7 +313,7 @@ export default function AdminOrdersPage() {
 
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />
-        
+
         <h2 className="text-2xl font-semibold mb-2">Order Management</h2>
         <p className="text-gray-600 mb-6">Manage all customer orders</p>
 
@@ -381,7 +381,14 @@ export default function AdminOrdersPage() {
                 <TableBody>
                   {filteredOrders.length > 0 ? (
                     filteredOrders.map((order) => (
-                      <TableRow key={order.id}>
+                      <TableRow
+                        key={order.id}
+                        className="cursor-pointer hover:bg-gray-100"
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setIsDetailsOpen(true);
+                        }}
+                      >
                         <TableCell className="font-medium">{order.orderNumber}</TableCell>
                         <TableCell>
                           <div>
@@ -390,7 +397,7 @@ export default function AdminOrdersPage() {
                           </div>
                         </TableCell>
                         <TableCell>₹{order.totalAmount.toFixed(2)}</TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <Select
                             value={order.status}
                             onValueChange={(value) => updateOrderStatus(order.id, value)}
@@ -410,7 +417,7 @@ export default function AdminOrdersPage() {
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <Select
                             value={order.paymentStatus}
                             onValueChange={(value) => updatePaymentStatus(order.id, value)}
@@ -428,7 +435,7 @@ export default function AdminOrdersPage() {
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           {order.deliveryPartner ? (
                             <div className="flex items-center gap-2">
                               <Badge variant="outline" className="flex items-center gap-1">
@@ -459,7 +466,7 @@ export default function AdminOrdersPage() {
                           {new Date(order.createdAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                             <Button
                               variant="ghost"
                               size="icon"

@@ -284,7 +284,11 @@ export default function AdminDeliveryAgentsPage() {
                 <TableBody>
                   {filteredAgents.length > 0 ? (
                     filteredAgents.map((agent) => (
-                      <TableRow key={agent.id}>
+                      <TableRow
+                        key={agent.id}
+                        className="cursor-pointer hover:bg-gray-100"
+                        onClick={() => openAssignDialog(agent)}
+                      >
                         <TableCell className="font-medium">
                           {agent.name || 'N/A'}
                         </TableCell>
@@ -305,7 +309,10 @@ export default function AdminDeliveryAgentsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => openAssignDialog(agent)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openAssignDialog(agent);
+                            }}
                           >
                             <Package className="h-4 w-4 mr-1" />
                             Assign Orders

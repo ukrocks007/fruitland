@@ -16,9 +16,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { 
-  RefreshCw, 
-  AlertTriangle, 
+import {
+  RefreshCw,
+  AlertTriangle,
   TrendingUp,
   Package,
   BarChart3,
@@ -87,7 +87,7 @@ export default function ForecastingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lookbackMonths: 6, forecastDays: 30 }),
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         toast.success(data.message);
@@ -128,17 +128,17 @@ export default function ForecastingPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />
-        
+
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
             <h2 className="text-2xl font-semibold">Inventory Forecasting</h2>
             <p className="text-gray-600">Demand prediction and reorder recommendations</p>
           </div>
-          <Button 
-            onClick={generateForecasts} 
+          <Button
+            onClick={generateForecasts}
             disabled={generating}
             className="bg-green-600 hover:bg-green-700"
           >
@@ -227,8 +227,8 @@ export default function ForecastingPage() {
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 {lowStockAlerts.map((forecast) => (
-                  <Badge 
-                    key={forecast.id} 
+                  <Badge
+                    key={forecast.id}
                     variant="destructive"
                     className="py-1 px-3"
                   >
@@ -273,14 +273,15 @@ export default function ForecastingPage() {
                 <TableBody>
                   {forecasts.map((forecast) => {
                     const isLowStock = forecast.product.stock < forecast.recommendedReorderQty && forecast.recommendedReorderQty > 0;
-                    const stockCoverage = forecast.expectedQuantity > 0 
-                      ? Math.round((forecast.product.stock / forecast.expectedQuantity) * 100) 
+                    const stockCoverage = forecast.expectedQuantity > 0
+                      ? Math.round((forecast.product.stock / forecast.expectedQuantity) * 100)
                       : 100;
-                    
+
                     return (
-                      <TableRow 
+                      <TableRow
                         key={forecast.id}
-                        className={isLowStock ? 'bg-red-50' : ''}
+                        className={`${isLowStock ? 'bg-red-50' : ''} cursor-pointer hover:bg-gray-100`}
+                        onClick={() => router.push('/admin/inventory-warehouse')}
                       >
                         <TableCell className="font-medium">
                           {forecast.product.name}

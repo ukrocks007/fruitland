@@ -223,7 +223,7 @@ export default function AdminSubscriptionPackagesPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />
 
@@ -258,7 +258,11 @@ export default function AdminSubscriptionPackagesPage() {
                     </TableRow>
                   ) : (
                     packages.map((pkg) => (
-                      <TableRow key={pkg.id}>
+                      <TableRow
+                        key={pkg.id}
+                        className="cursor-pointer hover:bg-gray-100"
+                        onClick={() => openEditDialog(pkg)}
+                      >
                         <TableCell>
                           <div>
                             <p className="font-medium">{pkg.name}</p>
@@ -271,7 +275,7 @@ export default function AdminSubscriptionPackagesPage() {
                           <Badge variant="secondary">{getFrequencyLabel(pkg.frequency)}</Badge>
                         </TableCell>
                         <TableCell className="font-medium">₹{pkg.price.toFixed(2)}</TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <Button
                             variant={pkg.isActive ? "default" : "outline"}
                             size="sm"
@@ -281,7 +285,7 @@ export default function AdminSubscriptionPackagesPage() {
                           </Button>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                             <Button
                               variant="outline"
                               size="sm"

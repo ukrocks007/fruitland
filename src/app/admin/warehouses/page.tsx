@@ -102,7 +102,7 @@ export default function AdminWarehousesPage() {
       setFilteredWarehouses([]);
       return;
     }
-    
+
     let filtered = [...warehouses];
 
     if (searchQuery) {
@@ -254,7 +254,7 @@ export default function AdminWarehousesPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />
 
@@ -310,7 +310,11 @@ export default function AdminWarehousesPage() {
                     </TableRow>
                   ) : (
                     filteredWarehouses.map((warehouse) => (
-                      <TableRow key={warehouse.id}>
+                      <TableRow
+                        key={warehouse.id}
+                        className="cursor-pointer hover:bg-gray-100"
+                        onClick={() => openEditDialog(warehouse)}
+                      >
                         <TableCell className="font-medium">
                           {warehouse.name}
                         </TableCell>
@@ -347,7 +351,7 @@ export default function AdminWarehousesPage() {
                             {warehouse._count.orders} orders
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <Button
                             variant={warehouse.isActive ? "default" : "outline"}
                             size="sm"
@@ -357,7 +361,7 @@ export default function AdminWarehousesPage() {
                           </Button>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                             <Button
                               variant="outline"
                               size="sm"
@@ -371,10 +375,10 @@ export default function AdminWarehousesPage() {
                               onClick={() => handleDelete(warehouse.id)}
                               disabled={warehouse._count.orders > 0 || warehouse._count.productStocks > 0}
                               title={
-                                warehouse._count.orders > 0 
-                                  ? 'Cannot delete: has orders' 
-                                  : warehouse._count.productStocks > 0 
-                                    ? 'Cannot delete: has stock records' 
+                                warehouse._count.orders > 0
+                                  ? 'Cannot delete: has orders'
+                                  : warehouse._count.productStocks > 0
+                                    ? 'Cannot delete: has stock records'
                                     : 'Delete warehouse'
                               }
                             >

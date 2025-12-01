@@ -394,7 +394,14 @@ export default function AdminRefundsPage() {
                 <TableBody>
                   {filteredRefunds.length > 0 ? (
                     filteredRefunds.map((refund) => (
-                      <TableRow key={refund.id}>
+                      <TableRow
+                        key={refund.id}
+                        className="cursor-pointer hover:bg-gray-100"
+                        onClick={() => {
+                          setSelectedRefund(refund);
+                          setIsDetailsOpen(true);
+                        }}
+                      >
                         <TableCell className="font-medium">
                           {refund.order.orderNumber}
                         </TableCell>
@@ -415,7 +422,7 @@ export default function AdminRefundsPage() {
                           {new Date(refund.createdAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                             <Button
                               variant="ghost"
                               size="icon"

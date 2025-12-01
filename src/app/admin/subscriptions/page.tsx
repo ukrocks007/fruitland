@@ -244,7 +244,14 @@ export default function AdminSubscriptionsPage() {
                 <TableBody>
                   {filteredSubscriptions.length > 0 ? (
                     filteredSubscriptions.map((sub) => (
-                      <TableRow key={sub.id}>
+                      <TableRow
+                        key={sub.id}
+                        className="cursor-pointer hover:bg-gray-100"
+                        onClick={() => {
+                          setSelectedSubscription(sub);
+                          setIsDetailsOpen(true);
+                        }}
+                      >
                         <TableCell className="font-medium">{sub.subscriptionNumber}</TableCell>
                         <TableCell>
                           <div>
@@ -265,7 +272,7 @@ export default function AdminSubscriptionsPage() {
                           {new Date(sub.nextDeliveryDate).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                             <Button
                               variant="ghost"
                               size="icon"

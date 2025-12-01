@@ -1,15 +1,16 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Role } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Navbar } from '@/components/navbar';
 import { AdminNavigation } from '@/components/admin-navigation';
-import { 
-  Package, 
-  ShoppingCart, 
-  Users, 
-  DollarSign, 
+import {
+  Package,
+  ShoppingCart,
+  Users,
+  DollarSign,
   TrendingUp,
   AlertCircle,
 } from 'lucide-react';
@@ -59,7 +60,7 @@ async function getCachedAnalytics() {
 async function setCachedAnalytics(data: object) {
   try {
     const expiresAt = new Date(Date.now() + CACHE_TTL_MINUTES * 60 * 1000);
-    
+
     await prisma.analyticsCache.upsert({
       where: { key: CACHE_KEY },
       update: {
@@ -165,8 +166,8 @@ async function getAnalytics() {
           createdAt: { gte: sixMonthsAgo },
           paymentStatus: 'PAID',
         },
-        select: { 
-          totalAmount: true, 
+        select: {
+          totalAmount: true,
           createdAt: true,
           items: {
             include: {
@@ -201,7 +202,7 @@ async function getAnalytics() {
       where: { id: { in: productIds } },
     });
     const productMap = new Map(products.map(p => [p.id, p]));
-    
+
     const topProducts = topProductsData.map(item => ({
       product: productMap.get(item.productId) || null,
       totalSold: item._sum.quantity || 0,
@@ -212,11 +213,11 @@ async function getAnalytics() {
     for (let i = 5; i >= 0; i--) {
       const monthStart = startOfMonth(subMonths(now, i));
       const monthEnd = endOfMonth(subMonths(now, i));
-      
+
       const monthRevenue = allRecentOrders
         .filter(order => order.createdAt >= monthStart && order.createdAt <= monthEnd)
         .reduce((sum, order) => sum + order.totalAmount, 0);
-      
+
       revenueByMonth.push({
         month: format(monthStart, 'MMM yyyy'),
         revenue: monthRevenue,
@@ -232,7 +233,7 @@ async function getAnalytics() {
     const subscriptionGrowth = [];
     for (let i = 5; i >= 0; i--) {
       const monthEnd = endOfMonth(subMonths(now, i));
-      
+
       const count = allSubscriptionsForGrowth.filter(
         sub => sub.createdAt <= monthEnd
       ).length;
@@ -298,12 +299,12 @@ export default async function AdminAnalyticsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />
-        
+
         <h2 className="text-2xl font-semibold mb-6">Business Growth Analytics</h2>
-        
+
         {analytics ? (
           <>
             {/* Stats Grid */}
@@ -395,7 +396,11 @@ export default async function AdminAnalyticsPage() {
                   {analytics.recentOrders.length > 0 ? (
                     <div className="space-y-4">
                       {analytics.recentOrders.slice(0, 5).map((order: RecentOrder) => (
-                        <div key={order.id} className="flex justify-between items-center border-b pb-2">
+                        <Link
+                          href="/admin/orders"
+                          key={order.id}
+                          className="flex justify-between items-center border-b pb-2 hover:bg-gray-50 transition-colors cursor-pointer"
+                        >
                           <div>
                             <p className="font-medium">{order.orderNumber}</p>
                             <p className="text-sm text-gray-600">{order.user.email}</p>
@@ -404,7 +409,7 @@ export default async function AdminAnalyticsPage() {
                             <p className="font-medium">₹{order.totalAmount.toFixed(2)}</p>
                             <p className="text-sm text-gray-600">{order.status}</p>
                           </div>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   ) : (
@@ -425,17 +430,21 @@ export default async function AdminAnalyticsPage() {
                       {analytics.topProducts
                         .filter((item: TopProduct) => item.product !== null)
                         .map((item: TopProduct) => (
-                        <div key={item.product!.id} className="flex justify-between items-center border-b pb-2">
-                          <div>
-                            <p className="font-medium">{item.product!.name}</p>
-                            <p className="text-sm text-gray-600">₹{item.product!.price}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium">{item.totalSold} sold</p>
-                            <p className="text-sm text-gray-600">Stock: {item.product!.stock}</p>
-                          </div>
-                        </div>
-                      ))}
+                          <Link
+                            href="/admin/products"
+                            key={item.product!.id}
+                            className="flex justify-between items-center border-b pb-2 hover:bg-gray-50 transition-colors cursor-pointer"
+                          >
+                            <div>
+                              <p className="font-medium">{item.product!.name}</p>
+                              <p className="text-sm text-gray-600">₹{item.product!.price}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">{item.totalSold} sold</p>
+                              <p className="text-sm text-gray-600">Stock: {item.product!.stock}</p>
+                            </div>
+                          </Link>
+                        ))}
                     </div>
                   ) : (
                     <p className="text-gray-500">No sales data yet</p>

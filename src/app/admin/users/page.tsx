@@ -209,7 +209,7 @@ export default function AdminUsersPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />
 
@@ -267,12 +267,16 @@ export default function AdminUsersPage() {
                     </TableRow>
                   ) : (
                     filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
+                      <TableRow
+                        key={user.id}
+                        className="cursor-pointer hover:bg-gray-100"
+                        onClick={() => openNotesDialog(user)}
+                      >
                         <TableCell className="font-medium">
                           {user.name || 'N/A'}
                         </TableCell>
                         <TableCell>{user.email}</TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <Select
                             value={user.role}
                             onValueChange={(value) => handleRoleChange(user.id, value)}
@@ -301,7 +305,7 @@ export default function AdminUsersPage() {
                           {formatDate(user.createdAt)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                             <Button
                               variant="outline"
                               size="sm"

@@ -96,7 +96,7 @@ export default function AdminProductsPage() {
       setFilteredProducts([]);
       return;
     }
-    
+
     let filtered = [...products];
 
     if (searchQuery) {
@@ -250,7 +250,7 @@ export default function AdminProductsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />
 
@@ -314,7 +314,11 @@ export default function AdminProductsPage() {
                     </TableRow>
                   ) : (
                     filteredProducts.map((product) => (
-                      <TableRow key={product.id}>
+                      <TableRow
+                        key={product.id}
+                        className="cursor-pointer hover:bg-gray-100"
+                        onClick={() => openEditDialog(product)}
+                      >
                         <TableCell className="font-medium">
                           {product.name}
                         </TableCell>
@@ -327,7 +331,7 @@ export default function AdminProductsPage() {
                             {product.stock}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <Button
                             variant={product.isAvailable ? "default" : "outline"}
                             size="sm"
@@ -337,7 +341,7 @@ export default function AdminProductsPage() {
                           </Button>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                             <Button
                               variant="outline"
                               size="sm"

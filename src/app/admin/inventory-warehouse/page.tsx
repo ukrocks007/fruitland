@@ -335,7 +335,11 @@ export default function AdminInventoryWarehousePage() {
                     </TableRow>
                   ) : (
                     filteredStocks.map((stock) => (
-                      <TableRow key={stock.id}>
+                      <TableRow
+                        key={stock.id}
+                        className="cursor-pointer hover:bg-gray-100"
+                        onClick={() => openStockDialog(stock)}
+                      >
                         <TableCell className="font-medium">
                           {stock.product.name}
                         </TableCell>
@@ -367,7 +371,10 @@ export default function AdminInventoryWarehousePage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => openStockDialog(stock)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openStockDialog(stock);
+                            }}
                           >
                             Adjust
                           </Button>

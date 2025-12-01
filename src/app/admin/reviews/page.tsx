@@ -52,10 +52,10 @@ export default function AdminReviewsPage() {
   const fetchReviews = useCallback(async () => {
     try {
       setLoading(true);
-      const url = statusFilter === 'all' 
+      const url = statusFilter === 'all'
         ? `/api/admin/reviews?page=${page}&limit=20`
         : `/api/admin/reviews?status=${statusFilter}&page=${page}&limit=20`;
-      
+
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -156,7 +156,7 @@ export default function AdminReviewsPage() {
 
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />
-        
+
         <h2 className="text-2xl font-semibold mb-2">Review Moderation</h2>
         <p className="text-gray-600 mb-6">Manage and moderate customer reviews</p>
 
@@ -209,7 +209,14 @@ export default function AdminReviewsPage() {
                 <TableBody>
                   {reviews.length > 0 ? (
                     reviews.map((review) => (
-                      <TableRow key={review.id}>
+                      <TableRow
+                        key={review.id}
+                        className="cursor-pointer hover:bg-gray-100"
+                        onClick={() => {
+                          setSelectedReview(review);
+                          setIsDetailsOpen(true);
+                        }}
+                      >
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <div className="relative w-10 h-10 rounded overflow-hidden bg-gray-100">
@@ -257,7 +264,7 @@ export default function AdminReviewsPage() {
                           {format(new Date(review.createdAt), 'PP')}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
+                          <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                             <Button
                               variant="ghost"
                               size="icon"

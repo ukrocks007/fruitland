@@ -243,10 +243,10 @@ export default function AdminBulkOrdersPage() {
     if (!invoiceData) return;
 
     const headers = ['Item', 'Quantity', 'Unit Price', 'Total'];
-    const rows = invoiceData.items.map(item => 
+    const rows = invoiceData.items.map(item =>
       [item.name, item.quantity, item.unitPrice, item.total].join(',')
     );
-    
+
     const summaryRows = [
       '',
       `Subtotal,,, ${invoiceData.summary.subtotal}`,
@@ -311,7 +311,7 @@ export default function AdminBulkOrdersPage() {
 
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />
-        
+
         <div className="flex items-center gap-3 mb-6">
           <Building2 className="h-6 w-6 text-green-600" />
           <div>
@@ -382,7 +382,14 @@ export default function AdminBulkOrdersPage() {
                 <TableBody>
                   {filteredOrders.length > 0 ? (
                     filteredOrders.map((order) => (
-                      <TableRow key={order.id}>
+                      <TableRow
+                        key={order.id}
+                        className="cursor-pointer hover:bg-gray-100"
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setIsDetailsOpen(true);
+                        }}
+                      >
                         <TableCell className="font-medium">{order.orderNumber}</TableCell>
                         <TableCell>
                           <div>
@@ -408,7 +415,7 @@ export default function AdminBulkOrdersPage() {
                             {order.bulkOrderStatus?.replace('_', ' ') || 'N/A'}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <Select
                             value={order.paymentStatus}
                             onValueChange={(value) => updatePaymentStatus(order.id, value)}
@@ -430,7 +437,7 @@ export default function AdminBulkOrdersPage() {
                           {new Date(order.createdAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                             {order.bulkOrderStatus === BulkOrderStatus.PENDING_APPROVAL && (
                               <>
                                 <Button
