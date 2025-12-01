@@ -46,6 +46,13 @@ export const ProductCategory = {
   EXOTIC: 'exotic',
 } as const;
 
+export const BulkOrderStatus = {
+  PENDING_APPROVAL: 'PENDING_APPROVAL',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  INVOICE_GENERATED: 'INVOICE_GENERATED',
+} as const;
+
 // Type exports
 export type RoleType = (typeof Role)[keyof typeof Role];
 export type OrderStatusType = (typeof OrderStatus)[keyof typeof OrderStatus];
@@ -54,6 +61,7 @@ export type SubscriptionFrequencyType = (typeof SubscriptionFrequency)[keyof typ
 export type SubscriptionPreferenceType = (typeof SubscriptionPreference)[keyof typeof SubscriptionPreference];
 export type SubscriptionStatusType = (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus];
 export type ProductCategoryType = (typeof ProductCategory)[keyof typeof ProductCategory];
+export type BulkOrderStatusType = (typeof BulkOrderStatus)[keyof typeof BulkOrderStatus];
 
 // Razorpay Types
 export interface RazorpayOptions {

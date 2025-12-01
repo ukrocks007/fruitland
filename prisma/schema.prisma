@@ -130,6 +130,14 @@ model Order {
   notes             String?
   deliveryPartnerId String?
   deliveryNotes     String?
+  // Bulk order fields
+  isBulkOrder          Boolean  @default(false)
+  bulkCustomerName     String?  // Company or customer name
+  bulkCustomerContact  String?  // Phone or email
+  bulkCustomerGST      String?  // GST or business identifier (optional)
+  bulkDiscountPercent  Float?   // Discount percentage applied
+  bulkOrderNote        String?  // Additional notes for bulk order
+  bulkOrderStatus      String?  // PENDING_APPROVAL, APPROVED, REJECTED, INVOICE_GENERATED
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
@@ -144,6 +152,7 @@ model Order {
   @@index([status])
   @@index([createdAt, paymentStatus])
   @@index([deliveryPartnerId])
+  @@index([isBulkOrder])
 }
 
 model OrderItem {

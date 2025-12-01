@@ -12,6 +12,7 @@ import {
   Settings,
   BarChart3,
   Truck,
+  Building2,
 } from 'lucide-react';
 
 const navItems = [
@@ -26,6 +27,12 @@ const navItems = [
     href: '/admin/orders',
     label: 'Orders',
     icon: ShoppingCart,
+    variant: 'outline' as const,
+  },
+  {
+    href: '/admin/bulk-orders',
+    label: 'Bulk Orders',
+    icon: Building2,
     variant: 'outline' as const,
   },
   {
