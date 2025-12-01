@@ -3,16 +3,48 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Star, Plus } from 'lucide-react';
+import { Star, Plus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Product } from '@prisma/client';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface FeaturedProductsProps {
     products: Product[];
 }
 
 export function FeaturedProducts({ products }: FeaturedProductsProps) {
+    const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
+
+    const addToCart = async (product: Product) => {
+        setAddingToCart(prev => ({ ...prev, [product.id]: true }));
+        try {
+            const res = await fetch('/api/cart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    productId: product.id,
+                    quantity: 1,
+                }),
+            });
+
+            if (!res.ok) {
+                const error = await res.json();
+                toast.error(error.error || 'Failed to add to cart');
+                return;
+            }
+
+            window.dispatchEvent(new Event('cartUpdated'));
+            toast.success(`${product.name} added to cart!`);
+        } catch (error) {
+            console.error('Error adding to cart:', error);
+            toast.error('Failed to add item to cart');
+        } finally {
+            setAddingToCart(prev => ({ ...prev, [product.id]: false }));
+        }
+    };
+
     if (!products || products.length === 0) {
         return null;
     }
@@ -68,8 +100,16 @@ export function FeaturedProducts({ products }: FeaturedProductsProps) {
                                     <p className="text-gray-500 text-sm mb-4">₹{product.price}</p>
                                 </CardContent>
                                 <CardFooter className="p-5 pt-0 mt-auto">
-                                    <Button className="w-full bg-white text-green-700 border-2 border-green-100 hover:bg-green-50 hover:border-green-200 shadow-none font-semibold">
-                                        <Plus className="w-4 h-4 mr-2" />
+                                    <Button
+                                        className="w-full bg-white text-green-700 border-2 border-green-100 hover:bg-green-50 hover:border-green-200 shadow-none font-semibold"
+                                        onClick={() => addToCart(product)}
+                                        disabled={addingToCart[product.id]}
+                                    >
+                                        {addingToCart[product.id] ? (
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        ) : (
+                                            <Plus className="w-4 h-4 mr-2" />
+                                        )}
                                         Add to Cart
                                     </Button>
                                 </CardFooter>

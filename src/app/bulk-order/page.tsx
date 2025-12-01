@@ -54,15 +54,16 @@ export default function BulkOrderPage() {
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
   const [step, setStep] = useState<'products' | 'details'>('products');
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
-  
+
   // Bulk customer info
   const [bulkCustomerName, setBulkCustomerName] = useState('');
   const [bulkCustomerContact, setBulkCustomerContact] = useState('');
   const [bulkCustomerGST, setBulkCustomerGST] = useState('');
   const [bulkOrderNote, setBulkOrderNote] = useState('');
-  
+
   // New address form
   const [newAddress, setNewAddress] = useState({
     name: '',
@@ -117,6 +118,7 @@ export default function BulkOrderPage() {
 
   const handleAddAddress = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSavingAddress(true);
     try {
       const res = await fetch('/api/addresses', {
         method: 'POST',
@@ -143,6 +145,8 @@ export default function BulkOrderPage() {
       toast.success('Address added successfully');
     } catch (error) {
       toast.error('Failed to add address');
+    } finally {
+      setSavingAddress(false);
     }
   };
 
@@ -247,7 +251,7 @@ export default function BulkOrderPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-8">
           <Building2 className="h-8 w-8 text-green-600" />
@@ -296,8 +300,8 @@ export default function BulkOrderPage() {
                     {products.map((product) => (
                       <div key={product.id} className="flex gap-4 p-4 border rounded-lg">
                         <div className="relative h-20 w-20 flex-shrink-0 rounded overflow-hidden bg-gray-100">
-                          <Image 
-                            src={product.image} 
+                          <Image
+                            src={product.image}
                             alt={product.name}
                             fill
                             className="object-cover"
@@ -307,7 +311,7 @@ export default function BulkOrderPage() {
                           <h4 className="font-medium truncate">{product.name}</h4>
                           <p className="text-sm text-gray-500">₹{product.price}</p>
                           <p className="text-xs text-gray-400">Stock: {product.stock}</p>
-                          
+
                           <div className="flex items-center gap-2 mt-2">
                             {getCartQuantity(product.id) > 0 ? (
                               <>
@@ -395,9 +399,9 @@ export default function BulkOrderPage() {
                           </div>
                         ))}
                       </div>
-                      
+
                       <Separator />
-                      
+
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span>Total Items</span>
@@ -419,7 +423,7 @@ export default function BulkOrderPage() {
                           <span className="text-green-600">₹{getTotal().toFixed(2)}</span>
                         </div>
                       </div>
-                      
+
                       {getDiscountPercent() > 0 && (
                         <Badge className="w-full justify-center bg-green-600">
                           You save ₹{getDiscountAmount().toFixed(2)} with bulk discount!
@@ -588,7 +592,16 @@ export default function BulkOrderPage() {
                             required
                           />
                         </div>
-                        <Button type="submit" className="w-full">Save Address</Button>
+                        <Button type="submit" className="w-full" disabled={savingAddress}>
+                          {savingAddress ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            'Save Address'
+                          )}
+                        </Button>
                       </form>
                     </DialogContent>
                   </Dialog>
@@ -650,9 +663,9 @@ export default function BulkOrderPage() {
                       </div>
                     ))}
                   </div>
-                  
+
                   <Separator />
-                  
+
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Total Items</span>

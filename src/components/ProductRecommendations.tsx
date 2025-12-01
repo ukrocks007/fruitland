@@ -28,25 +28,25 @@ interface ProductRecommendationsProps {
 }
 
 const reasonTagLabels: Record<string, { label: string; icon: React.ReactNode }> = {
-  frequently_bought_together: { 
-    label: 'Bought Together', 
-    icon: <ShoppingBag className="w-3 h-3" /> 
+  frequently_bought_together: {
+    label: 'Bought Together',
+    icon: <ShoppingBag className="w-3 h-3" />
   },
-  trending: { 
-    label: 'Trending', 
-    icon: <TrendingUp className="w-3 h-3" /> 
+  trending: {
+    label: 'Trending',
+    icon: <TrendingUp className="w-3 h-3" />
   },
-  based_on_history: { 
-    label: 'For You', 
-    icon: <History className="w-3 h-3" /> 
+  based_on_history: {
+    label: 'For You',
+    icon: <History className="w-3 h-3" />
   },
-  frequently_reordered: { 
-    label: 'Buy Again', 
-    icon: <History className="w-3 h-3" /> 
+  frequently_reordered: {
+    label: 'Buy Again',
+    icon: <History className="w-3 h-3" />
   },
-  same_category: { 
-    label: 'Similar', 
-    icon: <ShoppingBag className="w-3 h-3" /> 
+  same_category: {
+    label: 'Similar',
+    icon: <ShoppingBag className="w-3 h-3" />
   },
 };
 
@@ -57,6 +57,7 @@ export function ProductRecommendations({
 }: ProductRecommendationsProps) {
   const [recommendations, setRecommendations] = useState<RecommendedProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchRecommendations = async () => {
@@ -82,6 +83,7 @@ export function ProductRecommendations({
   }, [productId, limit]);
 
   const addToCart = async (product: RecommendedProduct) => {
+    setAddingToCart(prev => ({ ...prev, [product.id]: true }));
     try {
       const res = await fetch('/api/cart', {
         method: 'POST',
@@ -103,6 +105,8 @@ export function ProductRecommendations({
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error('Failed to add item to cart');
+    } finally {
+      setAddingToCart(prev => ({ ...prev, [product.id]: false }));
     }
   };
 
@@ -171,9 +175,13 @@ export function ProductRecommendations({
                   className="w-full"
                   size="sm"
                   onClick={() => addToCart(product)}
-                  disabled={product.stock === 0}
+                  disabled={product.stock === 0 || addingToCart[product.id]}
                 >
-                  <Plus className="w-4 h-4 mr-1" />
+                  {addingToCart[product.id] ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4 mr-1" />
+                  )}
                   {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
                 </Button>
               </CardFooter>

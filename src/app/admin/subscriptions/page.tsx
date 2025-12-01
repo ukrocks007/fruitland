@@ -55,6 +55,7 @@ export default function AdminSubscriptionsPage() {
   const [frequencyFilter, setFrequencyFilter] = useState('all');
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState<{ id: string, action: string } | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -113,6 +114,8 @@ export default function AdminSubscriptionsPage() {
   };
 
   const updateSubscriptionStatus = async (id: string, status: string) => {
+    const action = status === 'ACTIVE' ? 'RESUME' : status === 'PAUSED' ? 'PAUSE' : 'CANCEL';
+    setActionLoading({ id, action });
     try {
       const res = await fetch(`/api/admin/subscriptions/${id}`, {
         method: 'PATCH',
@@ -128,12 +131,15 @@ export default function AdminSubscriptionsPage() {
       }
     } catch (error) {
       toast.error('Failed to update status');
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const deleteSubscription = async (id: string) => {
     if (!confirm('Are you sure you want to delete this subscription?')) return;
 
+    setActionLoading({ id, action: 'DELETE' });
     try {
       const res = await fetch(`/api/admin/subscriptions/${id}`, {
         method: 'DELETE',
@@ -147,6 +153,8 @@ export default function AdminSubscriptionsPage() {
       }
     } catch (error) {
       toast.error('Failed to delete subscription');
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -173,7 +181,7 @@ export default function AdminSubscriptionsPage() {
 
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />
-        
+
         <h2 className="text-2xl font-semibold mb-2">Subscription Management</h2>
         <p className="text-gray-600 mb-6">Manage all customer subscriptions</p>
 
@@ -273,8 +281,13 @@ export default function AdminSubscriptionsPage() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => updateSubscriptionStatus(sub.id, 'PAUSED')}
+                                disabled={actionLoading?.id === sub.id}
                               >
-                                <Pause className="h-4 w-4 text-yellow-500" />
+                                {actionLoading?.id === sub.id && actionLoading?.action === 'PAUSE' ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Pause className="h-4 w-4 text-yellow-500" />
+                                )}
                               </Button>
                             )}
                             {sub.status === 'PAUSED' && (
@@ -282,8 +295,13 @@ export default function AdminSubscriptionsPage() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => updateSubscriptionStatus(sub.id, 'ACTIVE')}
+                                disabled={actionLoading?.id === sub.id}
                               >
-                                <Play className="h-4 w-4 text-green-500" />
+                                {actionLoading?.id === sub.id && actionLoading?.action === 'RESUME' ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Play className="h-4 w-4 text-green-500" />
+                                )}
                               </Button>
                             )}
                             {sub.status !== 'CANCELLED' && (
@@ -291,16 +309,26 @@ export default function AdminSubscriptionsPage() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => updateSubscriptionStatus(sub.id, 'CANCELLED')}
+                                disabled={actionLoading?.id === sub.id}
                               >
-                                <XCircle className="h-4 w-4 text-red-500" />
+                                {actionLoading?.id === sub.id && actionLoading?.action === 'CANCEL' ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <XCircle className="h-4 w-4 text-red-500" />
+                                )}
                               </Button>
                             )}
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => deleteSubscription(sub.id)}
+                              disabled={actionLoading?.id === sub.id}
                             >
-                              <Trash2 className="h-4 w-4 text-red-500" />
+                              {actionLoading?.id === sub.id && actionLoading?.action === 'DELETE' ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              )}
                             </Button>
                           </div>
                         </TableCell>

@@ -80,7 +80,8 @@ export default function DeliveryDashboardPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [deliveryNotes, setDeliveryNotes] = useState('');
-  const [updating, setUpdating] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [updatingPayment, setUpdatingPayment] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -135,7 +136,7 @@ export default function DeliveryDashboardPage() {
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    setUpdating(true);
+    setUpdatingStatus(true);
     try {
       const res = await fetch(`/api/delivery/orders/${orderId}`, {
         method: 'PATCH',
@@ -161,12 +162,12 @@ export default function DeliveryDashboardPage() {
       console.error('Update exception:', error);
       toast.error('Failed to update status');
     } finally {
-      setUpdating(false);
+      setUpdatingStatus(false);
     }
   };
 
   const updatePaymentStatus = async (orderId: string) => {
-    setUpdating(true);
+    setUpdatingPayment(true);
     try {
       const res = await fetch(`/api/delivery/orders/${orderId}`, {
         method: 'PATCH',
@@ -189,7 +190,7 @@ export default function DeliveryDashboardPage() {
       console.error('Update exception:', error);
       toast.error('Failed to update payment status');
     } finally {
-      setUpdating(false);
+      setUpdatingPayment(false);
     }
   };
 
@@ -521,10 +522,10 @@ export default function DeliveryDashboardPage() {
                           onClick={() =>
                             updateOrderStatus(selectedOrder.id, 'OUT_FOR_DELIVERY')
                           }
-                          disabled={updating}
+                          disabled={updatingStatus}
                           variant="outline"
                         >
-                          {updating ? (
+                          {updatingStatus ? (
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                           ) : (
                             <Truck className="h-4 w-4 mr-2" />
@@ -536,10 +537,10 @@ export default function DeliveryDashboardPage() {
                         onClick={() =>
                           updateOrderStatus(selectedOrder.id, 'DELIVERED')
                         }
-                        disabled={updating}
+                        disabled={updatingStatus}
                         className="bg-green-600 hover:bg-green-700"
                       >
-                        {updating ? (
+                        {updatingStatus ? (
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         ) : (
                           <Package className="h-4 w-4 mr-2" />
@@ -552,11 +553,11 @@ export default function DeliveryDashboardPage() {
                   selectedOrder.status !== 'CANCELLED' && (
                     <Button
                       onClick={() => updatePaymentStatus(selectedOrder.id)}
-                      disabled={updating}
+                      disabled={updatingPayment}
                       variant="outline"
                       className="border-green-600 text-green-600 hover:bg-green-50"
                     >
-                      {updating ? (
+                      {updatingPayment ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : null}
                       Collect Payment (COD)

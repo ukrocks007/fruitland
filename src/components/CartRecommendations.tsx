@@ -29,25 +29,25 @@ interface CartRecommendationsProps {
 }
 
 const reasonTagLabels: Record<string, { label: string; icon: React.ReactNode }> = {
-  frequently_bought_together: { 
-    label: 'Bought Together', 
-    icon: <ShoppingBag className="w-3 h-3" /> 
+  frequently_bought_together: {
+    label: 'Bought Together',
+    icon: <ShoppingBag className="w-3 h-3" />
   },
-  trending: { 
-    label: 'Popular', 
-    icon: <TrendingUp className="w-3 h-3" /> 
+  trending: {
+    label: 'Popular',
+    icon: <TrendingUp className="w-3 h-3" />
   },
-  based_on_history: { 
-    label: 'For You', 
-    icon: <History className="w-3 h-3" /> 
+  based_on_history: {
+    label: 'For You',
+    icon: <History className="w-3 h-3" />
   },
-  frequently_reordered: { 
-    label: 'Buy Again', 
-    icon: <History className="w-3 h-3" /> 
+  frequently_reordered: {
+    label: 'Buy Again',
+    icon: <History className="w-3 h-3" />
   },
-  same_category: { 
-    label: 'Similar', 
-    icon: <ShoppingBag className="w-3 h-3" /> 
+  same_category: {
+    label: 'Similar',
+    icon: <ShoppingBag className="w-3 h-3" />
   },
 };
 
@@ -59,6 +59,7 @@ export function CartRecommendations({
 }: CartRecommendationsProps) {
   const [recommendations, setRecommendations] = useState<RecommendedProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchRecommendations = async () => {
@@ -91,6 +92,7 @@ export function CartRecommendations({
   }, [cartProductIds, limit]);
 
   const addToCart = async (product: RecommendedProduct) => {
+    setAddingToCart(prev => ({ ...prev, [product.id]: true }));
     try {
       const res = await fetch('/api/cart', {
         method: 'POST',
@@ -109,15 +111,17 @@ export function CartRecommendations({
 
       window.dispatchEvent(new Event('cartUpdated'));
       toast.success(`${product.name} added to cart!`);
-      
+
       // Remove from recommendations after adding
       setRecommendations((prev) => prev.filter((p) => p.id !== product.id));
-      
+
       // Notify parent component
       onAddToCart?.();
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error('Failed to add item to cart');
+    } finally {
+      setAddingToCart(prev => ({ ...prev, [product.id]: false }));
     }
   };
 
@@ -180,9 +184,13 @@ export function CartRecommendations({
                         variant="outline"
                         className="shrink-0"
                         onClick={() => addToCart(product)}
-                        disabled={product.stock === 0}
+                        disabled={product.stock === 0 || addingToCart[product.id]}
                       >
-                        <Plus className="w-4 h-4" />
+                        {addingToCart[product.id] ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Plus className="w-4 h-4" />
+                        )}
                       </Button>
                     </div>
                   </div>

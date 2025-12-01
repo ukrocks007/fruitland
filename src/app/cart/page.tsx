@@ -30,13 +30,15 @@ export default function CartPage() {
   const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingItems, setUpdatingItems] = useState<Record<string, boolean>>({});
+  const [clearingCart, setClearingCart] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/signin?callbackUrl=/cart');
       return;
     }
-    
+
     if (status === 'authenticated') {
       fetchCart();
     }
@@ -63,6 +65,7 @@ export default function CartPage() {
       return;
     }
 
+    setUpdatingItems(prev => ({ ...prev, [id]: true }));
     try {
       const res = await fetch(`/api/cart/${id}`, {
         method: 'PATCH',
@@ -77,16 +80,19 @@ export default function CartPage() {
       }
 
       const updatedItem = await res.json();
-      setCartItems(cartItems.map(item => 
+      setCartItems(cartItems.map(item =>
         item.id === id ? updatedItem : item
       ));
       window.dispatchEvent(new Event('cartUpdated'));
     } catch (error) {
       toast.error('Failed to update quantity');
+    } finally {
+      setUpdatingItems(prev => ({ ...prev, [id]: false }));
     }
   };
 
   const removeItem = async (id: string) => {
+    setUpdatingItems(prev => ({ ...prev, [id]: true }));
     try {
       const res = await fetch(`/api/cart/${id}`, {
         method: 'DELETE',
@@ -102,10 +108,13 @@ export default function CartPage() {
       toast.success('Item removed from cart');
     } catch (error) {
       toast.error('Failed to remove item');
+    } finally {
+      setUpdatingItems(prev => ({ ...prev, [id]: false }));
     }
   };
 
   const clearCart = async () => {
+    setClearingCart(true);
     try {
       const res = await fetch('/api/cart', {
         method: 'DELETE',
@@ -121,6 +130,8 @@ export default function CartPage() {
       toast.success('Cart cleared');
     } catch (error) {
       toast.error('Failed to clear cart');
+    } finally {
+      setClearingCart(false);
     }
   };
 
@@ -148,13 +159,20 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Shopping Cart</h1>
           {cartItems.length > 0 && (
-            <Button variant="outline" onClick={clearCart}>
-              Clear Cart
+            <Button variant="outline" onClick={clearCart} disabled={clearingCart}>
+              {clearingCart ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Clearing...
+                </>
+              ) : (
+                'Clear Cart'
+              )}
             </Button>
           )}
         </div>
@@ -175,7 +193,7 @@ export default function CartPage() {
                           className="object-cover rounded"
                         />
                       </div>
-                      
+
                       <div className="flex-1">
                         <div className="flex justify-between mb-2">
                           <h3 className="font-semibold text-lg">{item.product.name}</h3>
@@ -183,15 +201,20 @@ export default function CartPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => removeItem(item.id)}
+                            disabled={updatingItems[item.id]}
                           >
-                            <Trash2 className="h-4 w-4 text-red-500" />
+                            {updatingItems[item.id] ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            )}
                           </Button>
                         </div>
-                        
+
                         <p className="text-green-600 font-semibold mb-2">
                           ₹{item.product.price}
                         </p>
-                        
+
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Button
@@ -199,6 +222,7 @@ export default function CartPage() {
                               size="icon"
                               className="h-8 w-8"
                               onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              disabled={updatingItems[item.id]}
                             >
                               <Minus className="h-3 w-3" />
                             </Button>
@@ -215,16 +239,17 @@ export default function CartPage() {
                               size="icon"
                               className="h-8 w-8"
                               onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              disabled={updatingItems[item.id]}
                             >
                               <Plus className="h-3 w-3" />
                             </Button>
                           </div>
-                          
+
                           <p className="font-bold">
                             ₹{(item.product.price * item.quantity).toFixed(2)}
                           </p>
                         </div>
-                        
+
                         {item.product.stock <= 10 && (
                           <Badge variant="outline" className="mt-2 text-orange-600">
                             Only {item.product.stock} left in stock

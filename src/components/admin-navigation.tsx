@@ -170,8 +170,8 @@ export function AdminNavigation() {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
-      <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+    <div className="flex-row justify-between items-center gap-4 mb-8">
+      <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
       <div className="grid grid-cols-2 sm:flex gap-2 flex-wrap">
         {navItems.map((item) => {
           const Icon = item.icon;

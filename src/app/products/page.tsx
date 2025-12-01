@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -25,6 +26,7 @@ export default function ProductsPage() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const categories = ['all', 'fresh', 'seasonal', 'organic', 'exotic'];
 
@@ -63,6 +65,7 @@ export default function ProductsPage() {
   };
 
   const addToCart = async (product: Product) => {
+    setAddingToCart(prev => ({ ...prev, [product.id]: true }));
     try {
       const res = await fetch('/api/cart', {
         method: 'POST',
@@ -85,6 +88,8 @@ export default function ProductsPage() {
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error('Please sign in to add items to cart');
+    } finally {
+      setAddingToCart(prev => ({ ...prev, [product.id]: false }));
     }
   };
 
@@ -157,9 +162,16 @@ export default function ProductsPage() {
                   <Button
                     className="w-full"
                     onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                    disabled={product.stock === 0}
+                    disabled={product.stock === 0 || addingToCart[product.id]}
                   >
-                    {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                    {addingToCart[product.id] ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      product.stock === 0 ? 'Out of Stock' : 'Add to Cart'
+                    )}
                   </Button>
                 </CardFooter>
               </Card>
