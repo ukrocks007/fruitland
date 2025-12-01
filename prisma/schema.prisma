@@ -107,13 +107,30 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  orderItems        OrderItem[]
-  subscriptionItems SubscriptionItem[]
-  cartItems         CartItem[]
-  reviews           Review[]
+  orderItems         OrderItem[]
+  subscriptionItems  SubscriptionItem[]
+  cartItems          CartItem[]
+  reviews            Review[]
+  inventoryForecasts InventoryForecast[]
 
   @@index([stock, isAvailable])
   @@index([category])
+}
+
+// Inventory Forecast model for demand prediction
+model InventoryForecast {
+  id                    String   @id @default(cuid())
+  productId             String
+  forecastDate          DateTime // Date for which forecast is valid
+  expectedQuantity      Int      // Forecasted demand quantity
+  recommendedReorderQty Int      // Suggested reorder quantity
+  createdAt             DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([forecastDate])
+  @@index([productId, forecastDate])
 }
 
 // Order model
