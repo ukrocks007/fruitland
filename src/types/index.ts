@@ -118,6 +118,11 @@ export interface ProductWithStock {
   isSeasonal: boolean;
 }
 
+// Recommendation Types
+export interface RecommendedProduct extends ProductWithStock {
+  reasonTag: RecommendationReasonType;
+}
+
 // Cart Types
 export interface CartItem {
   product: ProductWithStock;

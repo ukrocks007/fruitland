@@ -1,23 +1,13 @@
 import { prisma } from '@/lib/prisma';
-import { RecommendationReason, RecommendationReasonType } from '@/types';
+import { RecommendationReason, RecommendedProduct } from '@/types';
 
 // Configuration constants for recommendation algorithms
 const MAX_CART_ITEMS_FOR_RECOMMENDATIONS = 3; // Limit cart items analyzed for performance
 const TOP_CATEGORIES_COUNT = 3; // Number of top categories to consider for history-based recommendations
 const MIN_REORDER_COUNT = 2; // Minimum number of orders for frequently reordered products
 
-export interface RecommendedProduct {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  image: string;
-  category: string;
-  stock: number;
-  isAvailable: boolean;
-  isSeasonal: boolean;
-  reasonTag: RecommendationReasonType;
-}
+// Re-export for convenience
+export type { RecommendedProduct } from '@/types';
 
 interface RecommendationOptions {
   limit?: number;
