@@ -20,6 +20,8 @@ model User {
   password      String?
   phone         String?
   role          String    @default("CUSTOMER") // CUSTOMER, ADMIN, or DELIVERY_PARTNER
+  pointsBalance Int       @default(0) // Loyalty points balance
+  loyaltyTier   String    @default("BASIC") // BASIC, SILVER, GOLD
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -32,6 +34,7 @@ model User {
   customerNotes    CustomerNote[] @relation("CustomerNotes")
   createdNotes     CustomerNote[] @relation("CreatedNotes")
   assignedOrders   Order[]        @relation("DeliveryPartner")
+  loyaltyTransactions   LoyaltyTransaction[]
   processedRefunds Refund[]       @relation("RefundProcessedBy")
   reviews          Review[]
 
@@ -136,30 +139,34 @@ model InventoryForecast {
 
 // Order model
 model Order {
-  id                String      @id @default(cuid())
-  userId            String
-  addressId         String
-  orderNumber       String      @unique
-  totalAmount       Float
-  status            String      @default("PENDING") // PENDING, PROCESSING, SHIPPED, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
-  paymentStatus     String      @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
+  id                 String      @id @default(cuid())
+  userId             String
+  addressId          String
+  orderNumber        String      @unique
+  totalAmount        Float
+  pointsRedeemed     Int         @default(0) // Loyalty points redeemed for this order
+  pointsDiscount     Float       @default(0) // Discount amount from points
+  pointsEarned       Int         @default(0) // Points earned from this order
+  status             String      @default("PENDING") // PENDING, PROCESSING, SHIPPED, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
   paymentMethod     String      @default("ONLINE") // ONLINE, COD
-  razorpayOrderId   String?
-  razorpayPaymentId String?
-  razorpaySignature String?
-  subscriptionId    String?
-  notes             String?
-  deliveryPartnerId String?
-  deliveryNotes     String?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  paymentStatus      String      @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
+  razorpayOrderId    String?
+  razorpayPaymentId  String?
+  razorpaySignature  String?
+  subscriptionId     String?
+  notes              String?
+  deliveryPartnerId  String?
+  deliveryNotes      String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  address         Address       @relation(fields: [addressId], references: [id])
-  subscription    Subscription? @relation(fields: [subscriptionId], references: [id])
-  deliveryPartner User?         @relation("DeliveryPartner", fields: [deliveryPartnerId], references: [id])
-  items           OrderItem[]
-  refunds         Refund[]
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  address             Address       @relation(fields: [addressId], references: [id])
+  subscription        Subscription? @relation(fields: [subscriptionId], references: [id])
+  deliveryPartner     User?         @relation("DeliveryPartner", fields: [deliveryPartnerId], references: [id])
+  items               OrderItem[]
+  loyaltyTransactions LoyaltyTransaction[]
+  refunds             Refund[]
 
   @@index([createdAt])
   @@index([paymentStatus])
@@ -301,6 +308,24 @@ model AnalyticsCache {
 
   @@index([key])
   @@index([expiresAt])
+}
+
+// Loyalty Transaction model for tracking points earned/redeemed
+model LoyaltyTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  orderId     String?
+  type        String   // EARN or REDEEM
+  points      Int      // Number of points (positive for earn, positive for redeem as it tracks absolute value)
+  description String   // Description of transaction
+  createdAt   DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([type])
 }
 
 model Refund {

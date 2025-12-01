@@ -52,6 +52,18 @@ export const ProductCategory = {
   EXOTIC: 'exotic',
 } as const;
 
+// Loyalty Types
+export const LoyaltyTier = {
+  BASIC: 'BASIC',
+  SILVER: 'SILVER',
+  GOLD: 'GOLD',
+} as const;
+
+export const LoyaltyTransactionType = {
+  EARN: 'EARN',
+  REDEEM: 'REDEEM',
+} as const;
+
 export const RefundStatus = {
   REQUESTED: 'REQUESTED',
   APPROVED: 'APPROVED',
@@ -79,6 +91,8 @@ export type SubscriptionPreferenceType = (typeof SubscriptionPreference)[keyof t
 export type SubscriptionStatusType = (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus];
 export type ReviewStatusType = (typeof ReviewStatus)[keyof typeof ReviewStatus];
 export type ProductCategoryType = (typeof ProductCategory)[keyof typeof ProductCategory];
+export type LoyaltyTierType = (typeof LoyaltyTier)[keyof typeof LoyaltyTier];
+export type LoyaltyTransactionTypeType = (typeof LoyaltyTransactionType)[keyof typeof LoyaltyTransactionType];
 export type RefundStatusType = (typeof RefundStatus)[keyof typeof RefundStatus];
 export type RefundMethodType = (typeof RefundMethod)[keyof typeof RefundMethod];
 export type PaymentMethodType = (typeof PaymentMethod)[keyof typeof PaymentMethod];
@@ -251,6 +265,34 @@ export interface ProductFormData {
   stock: number;
   isAvailable: boolean;
   isSeasonal: boolean;
+}
+
+// Loyalty Types
+export interface LoyaltyTransaction {
+  id: string;
+  userId: string;
+  orderId: string | null;
+  type: LoyaltyTransactionTypeType;
+  points: number;
+  description: string;
+  createdAt: Date;
+  order?: {
+    orderNumber: string;
+  } | null;
+}
+
+export interface LoyaltyInfo {
+  pointsBalance: number;
+  loyaltyTier: LoyaltyTierType;
+  transactions: LoyaltyTransaction[];
+}
+
+export interface LoyaltySettings {
+  pointsPerRupee: number;
+  minRedeemablePoints: number;
+  pointValueInRupees: number;
+  silverTierThreshold: number;
+  goldTierThreshold: number;
 }
 
 // Review Types

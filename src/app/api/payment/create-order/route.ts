@@ -3,6 +3,12 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createRazorpayOrder } from '@/lib/razorpay';
 import { prisma } from '@/lib/prisma';
+import { awardLoyaltyPoints, redeemLoyaltyPoints, getLoyaltySettings } from '@/lib/loyalty';
+
+interface OrderItem {
+  productId: string;
+  quantity: number;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { items, addressId, subscriptionId, paymentMethod = 'ONLINE' } = body;
+    const { items, addressId, subscriptionId, paymentMethod = 'ONLINE', redeemPoints = 0 } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0 || !addressId) {
       return NextResponse.json(
@@ -26,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch product details and calculate total amount
-    const productIds = items.map((item: any) => item.productId);
+    const productIds = items.map((item: OrderItem) => item.productId);
     const products = await prisma.product.findMany({
       where: {
         id: { in: productIds },
@@ -42,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     // Calculate total amount and prepare order items with prices
     let totalAmount = 0;
-    const orderItems = items.map((item: any) => {
+    const orderItems = items.map((item: OrderItem) => {
       const product = products.find(p => p.id === item.productId);
       if (!product) {
         throw new Error('Product not found');
@@ -63,6 +69,51 @@ export async function POST(request: NextRequest) {
       };
     });
 
+    // Handle points redemption
+    let pointsRedeemed = 0;
+    let pointsDiscount = 0;
+
+    if (redeemPoints > 0) {
+      const settings = await getLoyaltySettings();
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { pointsBalance: true },
+      });
+
+      if (!user || user.pointsBalance < redeemPoints) {
+        return NextResponse.json(
+          { error: 'Insufficient points balance' },
+          { status: 400 }
+        );
+      }
+
+      if (redeemPoints < settings.minRedeemablePoints) {
+        return NextResponse.json(
+          { error: `Minimum ${settings.minRedeemablePoints} points required to redeem` },
+          { status: 400 }
+        );
+      }
+
+      // Validate point value is positive to avoid division by zero
+      if (settings.pointValueInRupees <= 0) {
+        return NextResponse.json(
+          { error: 'Invalid loyalty point configuration' },
+          { status: 500 }
+        );
+      }
+
+      pointsRedeemed = redeemPoints;
+      pointsDiscount = redeemPoints * settings.pointValueInRupees;
+      
+      // Ensure discount doesn't exceed total
+      if (pointsDiscount > totalAmount) {
+        pointsDiscount = totalAmount;
+        pointsRedeemed = Math.ceil(totalAmount / settings.pointValueInRupees);
+      }
+    }
+
+    const finalAmount = totalAmount - pointsDiscount;
+
     // Generate order number
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
@@ -72,7 +123,9 @@ export async function POST(request: NextRequest) {
         userId: session.user.id,
         addressId,
         orderNumber,
-        totalAmount,
+        totalAmount: finalAmount,
+        pointsRedeemed,
+        pointsDiscount,
         status: 'PENDING',
         paymentStatus: paymentMethod === 'COD' ? 'PENDING' : 'PENDING',
         subscriptionId: subscriptionId || null,
@@ -81,6 +134,11 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // If points were redeemed, deduct them and create transaction
+    if (pointsRedeemed > 0) {
+      await redeemLoyaltyPoints(session.user.id, pointsRedeemed, order.id);
+    }
 
     // If COD, skip Razorpay and return order details
     if (paymentMethod === 'COD') {
@@ -96,17 +154,28 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Award loyalty points for COD orders (based on final amount after discount)
+      const loyaltyResult = await awardLoyaltyPoints(
+        session.user.id,
+        order.id,
+        finalAmount
+      );
+
       return NextResponse.json({
         orderId: order.id,
         orderNumber,
         paymentMethod: 'COD',
-        totalAmount,
+        totalAmount: finalAmount,
+        pointsRedeemed,
+        pointsDiscount,
+        loyaltyPointsEarned: loyaltyResult.pointsEarned,
+        newPointsBalance: loyaltyResult.newBalance,
       });
     }
 
     // Create Razorpay order (convert to paise)
     const razorpayOrder = await createRazorpayOrder(
-      Math.round(totalAmount * 100), // Convert to paise
+      Math.round(finalAmount * 100), // Convert to paise
       orderNumber,
       {
         orderId: order.id,
@@ -141,11 +210,14 @@ export async function POST(request: NextRequest) {
       receipt: order.id, // Our internal order ID
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
+      pointsRedeemed,
+      pointsDiscount,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating order:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create order';
     return NextResponse.json(
-      { error: error.message || 'Failed to create order' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
