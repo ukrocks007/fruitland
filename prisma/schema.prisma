@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -32,6 +32,8 @@ model User {
   customerNotes    CustomerNote[] @relation("CustomerNotes")
   createdNotes     CustomerNote[] @relation("CreatedNotes")
   assignedOrders   Order[]        @relation("DeliveryPartner")
+  processedRefunds Refund[]       @relation("RefundProcessedBy")
+  reviews          Review[]
 
   @@index([role])
 }
@@ -109,6 +111,7 @@ model Product {
   orderItems         OrderItem[]
   subscriptionItems  SubscriptionItem[]
   cartItems          CartItem[]
+  reviews            Review[]
   inventoryForecasts InventoryForecast[]
 
   @@index([stock, isAvailable])
@@ -140,6 +143,7 @@ model Order {
   totalAmount       Float
   status            String      @default("PENDING") // PENDING, PROCESSING, SHIPPED, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
   paymentStatus     String      @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
+  paymentMethod     String      @default("ONLINE") // ONLINE, COD
   razorpayOrderId   String?
   razorpayPaymentId String?
   razorpaySignature String?
@@ -155,6 +159,7 @@ model Order {
   subscription    Subscription? @relation(fields: [subscriptionId], references: [id])
   deliveryPartner User?         @relation("DeliveryPartner", fields: [deliveryPartnerId], references: [id])
   items           OrderItem[]
+  refunds         Refund[]
 
   @@index([createdAt])
   @@index([paymentStatus])
@@ -296,4 +301,53 @@ model AnalyticsCache {
 
   @@index([key])
   @@index([expiresAt])
+}
+
+model Refund {
+  id               String   @id @default(uuid())
+  orderId          String
+  refundAmount     Float
+  refundReason     String
+  status           String   @default("REQUESTED") // REQUESTED, APPROVED, REJECTED, COMPLETED, FAILED
+  refundMethod     String   // ONLINE, COD
+  razorpayRefundId String?
+  processedBy      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  processedByUser  User?    @relation("RefundProcessedBy", fields: [processedBy], references: [id])
+
+  @@index([orderId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Review status enum
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Customer review model
+model Review {
+  id              String       @id @default(uuid())
+  productId       String
+  userId          String
+  rating          Int          // 1-5 stars
+  title           String?
+  comment         String
+  verifiedPurchase Boolean     @default(false)
+  status          ReviewStatus @default(PENDING)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId]) // Prevent duplicate reviews
+  @@index([productId, status])
+  @@index([userId])
+  @@index([status])
 }
