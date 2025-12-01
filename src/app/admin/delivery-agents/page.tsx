@@ -238,7 +238,7 @@ export default function AdminDeliveryAgentsPage() {
                 <div>
                   <p className="text-sm text-gray-500">Unassigned Orders</p>
                   <p className="text-2xl font-bold text-red-600">
-                    {unassignedOrders.length || '-'}
+                    {unassignedOrders.length > 0 ? unassignedOrders.length : '-'}
                   </p>
                 </div>
                 <Package className="h-8 w-8 text-red-600" />

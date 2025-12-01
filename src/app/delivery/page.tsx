@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
@@ -96,27 +96,7 @@ export default function DeliveryDashboardPage() {
     fetchOrders();
   }, [status, session, router]);
 
-  useEffect(() => {
-    filterOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, statusFilter, orders]);
-
-  const fetchOrders = async () => {
-    try {
-      const res = await fetch('/api/delivery/orders');
-      if (res.ok) {
-        const data = await res.json();
-        setOrders(data);
-      }
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      toast.error('Failed to load orders');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterOrders = () => {
+  const filterOrders = useCallback(() => {
     let filtered = orders;
 
     if (searchTerm) {
@@ -133,6 +113,25 @@ export default function DeliveryDashboardPage() {
     }
 
     setFilteredOrders(filtered);
+  }, [orders, searchTerm, statusFilter]);
+
+  useEffect(() => {
+    filterOrders();
+  }, [filterOrders]);
+
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch('/api/delivery/orders');
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(data);
+      }
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast.error('Failed to load orders');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
