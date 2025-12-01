@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
+import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,14 +29,12 @@ import {
   ShoppingCart, 
   CreditCard, 
   Banknote,
-  ChevronLeft,
   CheckCircle,
   Receipt,
   User,
   Phone
 } from 'lucide-react';
 import { Role } from '@/types';
-import Link from 'next/link';
 
 interface Product {
   id: string;
@@ -286,17 +285,11 @@ export default function AdminPOSPage() {
       <Navbar />
       
       <div className="container mx-auto px-4 py-4">
+        <AdminNavigation />
+        
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" asChild>
-              <Link href="/admin">
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Dashboard
-              </Link>
-            </Button>
-            <h1 className="text-2xl font-bold">Point of Sale</h1>
-          </div>
+          <h2 className="text-2xl font-bold">Point of Sale</h2>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-lg px-3 py-1">
               <ShoppingCart className="h-4 w-4 mr-2" />
@@ -305,7 +298,7 @@ export default function AdminPOSPage() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-4 h-[calc(100vh-180px)]">
+        <div className="grid lg:grid-cols-3 gap-4 h-[calc(100vh-250px)]">
           {/* Products Section */}
           <div className="lg:col-span-2 flex flex-col">
             <Card className="flex-1 flex flex-col">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/navbar';
+import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,8 +25,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Loader2, Search, Trash2, Edit2, Plus, ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
+import { Loader2, Search, Trash2, Edit2, Plus } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -252,14 +252,7 @@ export default function AdminProductsPage() {
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" asChild>
-            <Link href="/admin">
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Link>
-          </Button>
-        </div>
+        <AdminNavigation />
 
         <Card>
           <CardHeader>

@@ -2,14 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/navbar';
+import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Loader2, Save, ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
+import { Loader2, Save } from 'lucide-react';
 
 interface ConfigItem {
   key: string;
@@ -136,14 +135,7 @@ export default function AdminSettingsPage() {
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" asChild>
-            <Link href="/admin">
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Link>
-          </Button>
-        </div>
+        <AdminNavigation />
 
         <div className="max-w-4xl space-y-6">
           {/* Payment Settings */}
