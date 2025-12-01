@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createRazorpayOrder } from '@/lib/razorpay';
 import { prisma } from '@/lib/prisma';
+import { findWarehouseWithStock, allocateStock, confirmStockAllocation } from '@/lib/warehouse-stock';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch product details and calculate total amount
-    const productIds = items.map((item: any) => item.productId);
+    const productIds = items.map((item: { productId: string }) => item.productId);
     const products = await prisma.product.findMany({
       where: {
         id: { in: productIds },
@@ -40,16 +41,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Fetch delivery address for warehouse selection
+    const deliveryAddress = await prisma.address.findUnique({
+      where: { id: addressId },
+    });
+
+    // Prepare order items with quantities for warehouse check
+    const stockItems = items.map((item: { productId: string; quantity: number }) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+    }));
+
+    // Try to find a warehouse with sufficient stock
+    const warehouseId = await findWarehouseWithStock(stockItems, deliveryAddress?.pincode);
+
     // Calculate total amount and prepare order items with prices
     let totalAmount = 0;
-    const orderItems = items.map((item: any) => {
+    const orderItems = items.map((item: { productId: string; quantity: number }) => {
       const product = products.find(p => p.id === item.productId);
       if (!product) {
         throw new Error('Product not found');
       }
       
-      // Check stock availability
-      if (product.stock < item.quantity) {
+      // If no warehouse has stock, fall back to checking product's global stock
+      if (!warehouseId && product.stock < item.quantity) {
         throw new Error(`Insufficient stock for ${product.name}`);
       }
       
@@ -62,6 +77,17 @@ export async function POST(request: NextRequest) {
         price: product.price,
       };
     });
+
+    // If warehouse found, allocate stock from warehouse
+    if (warehouseId) {
+      const allocationResult = await allocateStock(warehouseId, stockItems);
+      if (!allocationResult.success) {
+        return NextResponse.json(
+          { error: 'Failed to allocate stock from warehouse' },
+          { status: 500 }
+        );
+      }
+    }
 
     // Generate order number
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
@@ -76,6 +102,7 @@ export async function POST(request: NextRequest) {
         status: 'PENDING',
         paymentStatus: paymentMethod === 'COD' ? 'PENDING' : 'PENDING',
         subscriptionId: subscriptionId || null,
+        warehouseId: warehouseId || null,
         items: {
           create: orderItems,
         },
@@ -84,7 +111,7 @@ export async function POST(request: NextRequest) {
 
     // If COD, skip Razorpay and return order details
     if (paymentMethod === 'COD') {
-      // Update product stock
+      // Update product stock (global) and confirm warehouse allocation
       for (const item of orderItems) {
         await prisma.product.update({
           where: { id: item.productId },
@@ -96,11 +123,17 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Confirm warehouse stock allocation if applicable
+      if (warehouseId) {
+        await confirmStockAllocation(warehouseId, stockItems);
+      }
+
       return NextResponse.json({
         orderId: order.id,
         orderNumber,
         paymentMethod: 'COD',
         totalAmount,
+        warehouseId,
       });
     }
 
@@ -122,7 +155,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Update product stock
+    // Update product stock (global) and confirm warehouse allocation
     for (const item of orderItems) {
       await prisma.product.update({
         where: { id: item.productId },
@@ -134,6 +167,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Confirm warehouse stock allocation if applicable
+    if (warehouseId) {
+      await confirmStockAllocation(warehouseId, stockItems);
+    }
+
     return NextResponse.json({
       orderId: order.id,
       orderNumber,
@@ -141,11 +179,13 @@ export async function POST(request: NextRequest) {
       receipt: order.id, // Our internal order ID
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
+      warehouseId,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating order:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create order';
     return NextResponse.json(
-      { error: error.message || 'Failed to create order' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

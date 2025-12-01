@@ -12,6 +12,8 @@ import {
   Settings,
   BarChart3,
   Truck,
+  Warehouse,
+  Boxes,
 } from 'lucide-react';
 
 const navItems = [
@@ -44,6 +46,18 @@ const navItems = [
     href: '/admin/subscription-packages',
     label: 'Packages',
     icon: Package,
+    variant: 'outline' as const,
+  },
+  {
+    href: '/admin/warehouses',
+    label: 'Warehouses',
+    icon: Warehouse,
+    variant: 'outline' as const,
+  },
+  {
+    href: '/admin/inventory-warehouse',
+    label: 'Inventory',
+    icon: Boxes,
     variant: 'outline' as const,
   },
   {
