@@ -11,8 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, Search, Eye, Trash2, Package } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Loader2, Search, Eye, Trash2, Package, Truck, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Role } from '@/types';
 
@@ -24,6 +24,13 @@ interface OrderItem {
   };
   quantity: number;
   price: number;
+}
+
+interface DeliveryPartner {
+  id: string;
+  name: string | null;
+  email: string;
+  phone: string | null;
 }
 
 interface Order {
@@ -44,6 +51,15 @@ interface Order {
     state: string;
   };
   items: OrderItem[];
+  deliveryPartner: DeliveryPartner | null;
+}
+
+interface DeliveryAgent {
+  id: string;
+  name: string | null;
+  email: string;
+  phone: string | null;
+  activeOrders: number;
 }
 
 export default function AdminOrdersPage() {
@@ -57,6 +73,10 @@ export default function AdminOrdersPage() {
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [deliveryAgents, setDeliveryAgents] = useState<DeliveryAgent[]>([]);
+  const [loadingAgents, setLoadingAgents] = useState(false);
+  const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -91,6 +111,22 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const fetchDeliveryAgents = async () => {
+    setLoadingAgents(true);
+    try {
+      const res = await fetch('/api/admin/delivery-agents');
+      if (res.ok) {
+        const data = await res.json();
+        setDeliveryAgents(data.agents);
+      }
+    } catch (error) {
+      console.error('Error fetching delivery agents:', error);
+      toast.error('Failed to load delivery agents');
+    } finally {
+      setLoadingAgents(false);
+    }
+  };
+
   const filterOrders = () => {
     let filtered = orders;
 
@@ -114,12 +150,12 @@ export default function AdminOrdersPage() {
     setFilteredOrders(filtered);
   };
 
-  const updateOrderStatus = async (orderId: string, status: string) => {
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       const res = await fetch(`/api/admin/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: newStatus }),
       });
 
       const data = await res.json();
@@ -160,6 +196,58 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const assignDeliveryPartner = async (agentId: string) => {
+    if (!selectedOrder) return;
+
+    setAssigning(true);
+    try {
+      const res = await fetch(`/api/admin/orders/${selectedOrder.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deliveryPartnerId: agentId }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success('Delivery partner assigned');
+        fetchOrders();
+        setIsAssignDialogOpen(false);
+      } else {
+        console.error('Assign error:', data);
+        toast.error(data.error || 'Failed to assign delivery partner');
+      }
+    } catch (error) {
+      console.error('Assign exception:', error);
+      toast.error('Failed to assign delivery partner');
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const unassignDeliveryPartner = async (orderId: string) => {
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deliveryPartnerId: null }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success('Delivery partner unassigned');
+        fetchOrders();
+      } else {
+        console.error('Unassign error:', data);
+        toast.error(data.error || 'Failed to unassign delivery partner');
+      }
+    } catch (error) {
+      console.error('Unassign exception:', error);
+      toast.error('Failed to unassign delivery partner');
+    }
+  };
+
   const deleteOrder = async (orderId: string) => {
     if (!confirm('Are you sure you want to delete this order?')) return;
 
@@ -183,25 +271,32 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const openAssignDialog = (order: Order) => {
+    setSelectedOrder(order);
+    setIsAssignDialogOpen(true);
+    fetchDeliveryAgents();
+  };
+
+  const getStatusColor = (orderStatus: string) => {
     const colors: Record<string, string> = {
       PENDING: 'bg-yellow-100 text-yellow-800',
       PROCESSING: 'bg-blue-100 text-blue-800',
       SHIPPED: 'bg-purple-100 text-purple-800',
+      OUT_FOR_DELIVERY: 'bg-orange-100 text-orange-800',
       DELIVERED: 'bg-green-100 text-green-800',
       CANCELLED: 'bg-red-100 text-red-800',
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[orderStatus] || 'bg-gray-100 text-gray-800';
   };
 
-  const getPaymentColor = (status: string) => {
+  const getPaymentColor = (paymentStat: string) => {
     const colors: Record<string, string> = {
       PENDING: 'bg-yellow-100 text-yellow-800',
       PAID: 'bg-green-100 text-green-800',
       FAILED: 'bg-red-100 text-red-800',
       REFUNDED: 'bg-gray-100 text-gray-800',
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[paymentStat] || 'bg-gray-100 text-gray-800';
   };
 
   if (loading || status === 'loading') {
@@ -246,6 +341,7 @@ export default function AdminOrdersPage() {
                   <SelectItem value="PENDING">Pending</SelectItem>
                   <SelectItem value="PROCESSING">Processing</SelectItem>
                   <SelectItem value="SHIPPED">Shipped</SelectItem>
+                  <SelectItem value="OUT_FOR_DELIVERY">Out for Delivery</SelectItem>
                   <SelectItem value="DELIVERED">Delivered</SelectItem>
                   <SelectItem value="CANCELLED">Cancelled</SelectItem>
                 </SelectContent>
@@ -277,6 +373,7 @@ export default function AdminOrdersPage() {
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Payment</TableHead>
+                    <TableHead>Delivery Partner</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -298,15 +395,16 @@ export default function AdminOrdersPage() {
                             value={order.status}
                             onValueChange={(value) => updateOrderStatus(order.id, value)}
                           >
-                            <SelectTrigger className="w-32">
+                            <SelectTrigger className="w-36">
                               <Badge className={getStatusColor(order.status)}>
-                                {order.status}
+                                {order.status.replace('_', ' ')}
                               </Badge>
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="PENDING">Pending</SelectItem>
                               <SelectItem value="PROCESSING">Processing</SelectItem>
                               <SelectItem value="SHIPPED">Shipped</SelectItem>
+                              <SelectItem value="OUT_FOR_DELIVERY">Out for Delivery</SelectItem>
                               <SelectItem value="DELIVERED">Delivered</SelectItem>
                               <SelectItem value="CANCELLED">Cancelled</SelectItem>
                             </SelectContent>
@@ -329,6 +427,33 @@ export default function AdminOrdersPage() {
                               <SelectItem value="REFUNDED">Refunded</SelectItem>
                             </SelectContent>
                           </Select>
+                        </TableCell>
+                        <TableCell>
+                          {order.deliveryPartner ? (
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="flex items-center gap-1">
+                                <Truck className="h-3 w-3" />
+                                {order.deliveryPartner.name || order.deliveryPartner.email}
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs"
+                                onClick={() => unassignDeliveryPartner(order.id)}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openAssignDialog(order)}
+                            >
+                              <UserPlus className="h-3 w-3 mr-1" />
+                              Assign
+                            </Button>
+                          )}
                         </TableCell>
                         <TableCell>
                           {new Date(order.createdAt).toLocaleDateString()}
@@ -358,7 +483,7 @@ export default function AdminOrdersPage() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                      <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                         No orders found
                       </TableCell>
                     </TableRow>
@@ -396,7 +521,7 @@ export default function AdminOrdersPage() {
                 <div>
                   <p className="text-sm text-gray-500">Status</p>
                   <Badge className={getStatusColor(selectedOrder.status)}>
-                    {selectedOrder.status}
+                    {selectedOrder.status.replace('_', ' ')}
                   </Badge>
                 </div>
               </div>
@@ -420,6 +545,28 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
+              {selectedOrder.deliveryPartner && (
+                <div>
+                  <h3 className="font-semibold mb-2">Assigned Delivery Partner</h3>
+                  <div className="bg-green-50 p-4 rounded flex items-center gap-2">
+                    <Truck className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="font-medium">
+                        {selectedOrder.deliveryPartner.name || 'N/A'}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {selectedOrder.deliveryPartner.email}
+                      </p>
+                      {selectedOrder.deliveryPartner.phone && (
+                        <p className="text-sm text-gray-600">
+                          Phone: {selectedOrder.deliveryPartner.phone}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <h3 className="font-semibold mb-2">Order Items</h3>
                 <div className="space-y-2">
@@ -437,6 +584,59 @@ export default function AdminOrdersPage() {
                   ))}
                 </div>
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Delivery Partner Dialog */}
+      <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Assign Delivery Partner</DialogTitle>
+            <DialogDescription>
+              Select a delivery partner for order #{selectedOrder?.orderNumber}
+            </DialogDescription>
+          </DialogHeader>
+
+          {loadingAgents ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+            </div>
+          ) : deliveryAgents.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p>No delivery partners available.</p>
+              <p className="text-sm mt-2">
+                Assign the DELIVERY_PARTNER role to users in User Management.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {deliveryAgents.map((agent) => (
+                <div
+                  key={agent.id}
+                  className="flex justify-between items-center p-4 border rounded-lg hover:bg-gray-50"
+                >
+                  <div>
+                    <p className="font-medium">{agent.name || 'N/A'}</p>
+                    <p className="text-sm text-gray-600">{agent.email}</p>
+                    <Badge variant="secondary" className="mt-1">
+                      {agent.activeOrders} active orders
+                    </Badge>
+                  </div>
+                  <Button
+                    onClick={() => assignDeliveryPartner(agent.id)}
+                    disabled={assigning}
+                    size="sm"
+                  >
+                    {assigning ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      'Assign'
+                    )}
+                  </Button>
+                </div>
+              ))}
             </div>
           )}
         </DialogContent>

@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Settings,
   BarChart3,
+  Truck,
 } from 'lucide-react';
 
 const navItems = [
@@ -43,6 +44,12 @@ const navItems = [
     href: '/admin/subscription-packages',
     label: 'Packages',
     icon: Package,
+    variant: 'outline' as const,
+  },
+  {
+    href: '/admin/delivery-agents',
+    label: 'Delivery Fleet',
+    icon: Truck,
     variant: 'outline' as const,
   },
   {
