@@ -6,27 +6,38 @@ import { CategoryRail } from '@/components/landing/CategoryRail';
 import { FeaturedProducts } from '@/components/landing/FeaturedProducts';
 import { Testimonials } from '@/components/landing/Testimonials';
 import { TrustBadges } from '@/components/landing/TrustBadges';
+import { Footer } from '@/components/footer';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { getFeaturedProducts, getHeroProduct, getCategories } from '@/lib/products';
+import { getStoreConfig } from '@/lib/store-config';
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
   const featuredProducts = await getFeaturedProducts();
   const heroProduct = await getHeroProduct();
   const categories = await getCategories();
+  const config = await getStoreConfig();
+  const landingConfig = config.landingPage;
 
   return (
     <div className="min-h-screen bg-white font-sans selection:bg-green-100 selection:text-green-900">
       <Navbar />
 
       <main>
-        <Hero product={heroProduct} />
+        <Hero
+          product={heroProduct}
+          title={landingConfig?.hero.title}
+          subtitle={landingConfig?.hero.subtitle}
+          badgeText={landingConfig?.hero.badgeText}
+          ctaText={landingConfig?.hero.ctaText}
+          imageUrl={landingConfig?.hero.imageUrl}
+        />
         <CategoryRail categories={categories} />
         <FeaturedProducts products={featuredProducts} />
-        <TrustBadges />
-        <Testimonials />
+        <TrustBadges features={landingConfig?.features} />
+        <Testimonials testimonials={landingConfig?.testimonials} />
 
         {/* CTA Section - Only show for non-logged-in users */}
         {!session && (
@@ -54,51 +65,7 @@ export default async function HomePage() {
         )}
       </main>
 
-      <footer className="bg-gray-900 text-gray-300 py-12 border-t border-gray-800">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <h3 className="text-white text-lg font-bold mb-4">Fruitland</h3>
-              <p className="text-sm leading-relaxed">
-                Delivering nature's finest fruits directly from organic farms to your doorstep. Freshness guaranteed.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-white font-bold mb-4">Shop</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="/products" className="hover:text-white transition">All Products</Link></li>
-                <li><Link href="/subscriptions" className="hover:text-white transition">Subscriptions</Link></li>
-                <li><Link href="/products?category=seasonal" className="hover:text-white transition">Seasonal</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-bold mb-4">Company</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="/about" className="hover:text-white transition">About Us</Link></li>
-                <li><Link href="/contact" className="hover:text-white transition">Contact</Link></li>
-                <li><Link href="/privacy" className="hover:text-white transition">Privacy Policy</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-bold mb-4">Newsletter</h4>
-              <p className="text-sm mb-4">Subscribe for fresh updates and offers.</p>
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  placeholder="Email address"
-                  className="bg-gray-800 border-none rounded-lg px-4 py-2 text-sm w-full focus:ring-1 focus:ring-green-500"
-                />
-                <Button size="sm" className="bg-green-600 hover:bg-green-500">
-                  Join
-                </Button>
-              </div>
-            </div>
-          </div>
-          <div className="text-center pt-8 border-t border-gray-800 text-sm">
-            <p>&copy; {new Date().getFullYear()} Fruitland. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer siteName={config.siteName} config={config.footer} />
     </div>
   );
 }

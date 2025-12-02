@@ -8,14 +8,21 @@ import { Product } from '@prisma/client';
 
 interface HeroProps {
     product?: Product | null;
+    title?: string;
+    subtitle?: string;
+    badgeText?: string;
+    ctaText?: string;
+    imageUrl?: string;
 }
 
-export function Hero({ product }: HeroProps) {
+export function Hero({ product, title, subtitle, badgeText, ctaText, imageUrl }: HeroProps) {
     // Default values if no product is provided
-    const productName = product?.name || "Alphonso Mangoes";
+    const productName = title || product?.name || "Alphonso Mangoes";
     const productPrice = product?.price || 899;
-    const productImage = product?.image;
-    const productDescription = product?.description || "Experience the true taste of nature with our hand-picked, seasonal fruits. From local orchards to your doorstep in 24 hours.";
+    const productImage = imageUrl || product?.image;
+    const productDescription = subtitle || product?.description || "Experience the true taste of nature with our hand-picked, seasonal fruits. From local orchards to your doorstep in 24 hours.";
+    const badge = badgeText || "100% Organic & Farm Fresh";
+    const cta = ctaText || "Shop Fresh";
 
     return (
         <section className="relative overflow-hidden bg-[#FDFBF7] pt-16 pb-24 lg:pt-32 lg:pb-40">
@@ -34,14 +41,10 @@ export function Hero({ product }: HeroProps) {
                     >
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 text-green-800 text-sm font-medium mb-6">
                             <Leaf className="w-4 h-4" />
-                            <span>100% Organic & Farm Fresh</span>
+                            <span>{badge}</span>
                         </div>
                         <h1 className="text-5xl lg:text-7xl font-bold text-gray-900 leading-[1.1] mb-6 tracking-tight">
-                            Nature's Sweetest <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-500">
-                                Bounty
-                            </span>
-                            , Delivered.
+                            {productName}
                         </h1>
                         <p className="text-xl text-gray-600 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
                             {productDescription}
@@ -49,7 +52,7 @@ export function Hero({ product }: HeroProps) {
                         <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                             <Link href="/products">
                                 <Button size="lg" className="h-14 px-8 text-lg rounded-full bg-green-700 hover:bg-green-800 transition-all shadow-lg hover:shadow-green-700/25">
-                                    Shop Fresh
+                                    {cta}
                                     <ArrowRight className="ml-2 h-5 w-5" />
                                 </Button>
                             </Link>

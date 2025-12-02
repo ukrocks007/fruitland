@@ -4,31 +4,43 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Quote } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const testimonials = [
+const defaultTestimonials = [
     {
         id: 1,
         name: "Priya Kulkarni",
         role: "Home Chef",
         content: "The quality of Alphonso mangoes was incredible! Better than anything I've found in local markets. The packaging was eco-friendly too.",
-        avatar: "PS"
+        avatar: "PK"
     },
     {
         id: 2,
         name: "Rahul Mehta",
         role: "Fitness Enthusiast",
         content: "I subscribe to the weekly fruit basket. It saves me so much time and ensures I get my daily vitamins. Highly recommended!",
-        avatar: "RV"
+        avatar: "RM"
     },
     {
         id: 3,
         name: "Anita Malusare",
         role: "Mother of two",
         content: "My kids love the berries! They are always fresh and sweet. Delivery is prompt and the customer service is very responsive.",
-        avatar: "AD"
+        avatar: "AM"
     }
 ];
 
-export function Testimonials() {
+interface TestimonialsProps {
+    testimonials?: Array<{
+        id: number;
+        name: string;
+        role: string;
+        content: string;
+        avatar: string;
+    }>;
+}
+
+export function Testimonials({ testimonials = [] }: TestimonialsProps) {
+    const displayTestimonials = testimonials && testimonials.length > 0 ? testimonials : defaultTestimonials;
+
     return (
         <section className="py-24 bg-white overflow-hidden">
             <div className="container mx-auto px-4">
@@ -40,7 +52,7 @@ export function Testimonials() {
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-8">
-                    {testimonials.map((t, i) => (
+                    {displayTestimonials.map((t, i) => (
                         <motion.div
                             key={t.id}
                             initial={{ opacity: 0, y: 20 }}

@@ -43,16 +43,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Upsert each config item
-    const promises = configs.map(({ key, value, label }: { key: string; value: string; label?: string }) =>
+    const promises = configs.map(({ key, value, label, type, category }: { key: string; value: string; label?: string; type?: string; category?: string }) =>
       prisma.config.upsert({
         where: { key },
-        update: { value },
-        create: { 
-          key, 
+        update: {
+          value,
+          ...(type && { type }),
+          ...(category && { category }),
+        },
+        create: {
+          key,
           value,
           label: label || key,
-          type: 'string',
-          category: 'general',
+          type: type || 'string',
+          category: category || 'general',
         },
       })
     );
