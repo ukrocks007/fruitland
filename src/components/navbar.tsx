@@ -18,6 +18,27 @@ import { Badge } from '@/components/ui/badge';
 export function Navbar() {
   const { data: session, status } = useSession();
   const [cartCount, setCartCount] = useState(0);
+  const [siteName, setSiteName] = useState('Fruitland');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetch store config
+    const fetchConfig = async () => {
+      try {
+        const res = await fetch('/api/store/config');
+        if (res.ok) {
+          const data = await res.json();
+          setSiteName(data.siteName || 'Fruitland');
+          if (data.theme?.logoUrl) {
+            setLogoUrl(data.theme.logoUrl);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching store config:', error);
+      }
+    };
+    fetchConfig();
+  }, []);
 
   useEffect(() => {
     // Update cart count on mount and when changes occur
@@ -51,8 +72,13 @@ export function Navbar() {
   return (
     <nav className="border-b bg-white sticky top-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="text-2xl font-bold text-green-600">
-          🍎 Fruitland
+        <Link href="/" className="text-2xl font-bold text-green-600 flex items-center gap-2">
+          {logoUrl ? (
+            <img src={logoUrl} alt={siteName} className="h-8 w-auto" />
+          ) : (
+            <span>🍎</span>
+          )}
+          {siteName}
         </Link>
 
         <div className="hidden md:flex items-center space-x-6">
@@ -77,8 +103,8 @@ export function Navbar() {
             <Button variant="ghost" size="icon" className="relative">
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
-                <Badge 
-                  variant="destructive" 
+                <Badge
+                  variant="destructive"
                   className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
                 >
                   {cartCount}
@@ -104,7 +130,7 @@ export function Navbar() {
                   </Button>
                 </Link>
               )}
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon">
