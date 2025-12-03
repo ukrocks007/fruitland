@@ -12,15 +12,18 @@ import { toast } from 'sonner';
 
 interface FeaturedProductsProps {
     products: Product[];
+    tenantSlug?: string;
 }
 
-export function FeaturedProducts({ products }: FeaturedProductsProps) {
+export function FeaturedProducts({ products, tenantSlug }: FeaturedProductsProps) {
     const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
+    const baseUrl = tenantSlug ? `/${tenantSlug}` : '';
 
     const addToCart = async (product: Product) => {
         setAddingToCart(prev => ({ ...prev, [product.id]: true }));
         try {
-            const res = await fetch('/api/cart', {
+            const url = tenantSlug ? `/api/cart?tenantSlug=${tenantSlug}` : '/api/cart';
+            const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -57,7 +60,7 @@ export function FeaturedProducts({ products }: FeaturedProductsProps) {
                         <h2 className="text-3xl font-bold text-gray-900 mb-2">Fresh Arrivals</h2>
                         <p className="text-gray-600">Handpicked for quality and taste</p>
                     </div>
-                    <Link href="/products">
+                    <Link href={`${baseUrl}/products`}>
                         <Button variant="ghost" className="text-green-700 hover:text-green-800 hover:bg-green-50">
                             View All
                         </Button>

@@ -8,14 +8,17 @@ import { Product } from '@prisma/client';
 
 interface HeroProps {
     product?: Product | null;
+    tenantSlug?: string;
 }
 
-export function Hero({ product }: HeroProps) {
+export function Hero({ product, tenantSlug }: HeroProps) {
     // Default values if no product is provided
     const productName = product?.name || "Alphonso Mangoes";
     const productPrice = product?.price || 899;
     const productImage = product?.image;
     const productDescription = product?.description || "Experience the true taste of nature with our hand-picked, seasonal fruits. From local orchards to your doorstep in 24 hours.";
+    const baseUrl = tenantSlug ? `/${tenantSlug}` : '';
+
 
     return (
         <section className="relative overflow-hidden bg-[#FDFBF7] pt-16 pb-24 lg:pt-32 lg:pb-40">
@@ -47,13 +50,13 @@ export function Hero({ product }: HeroProps) {
                             {productDescription}
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                            <Link href="/products">
+                            <Link href={`${baseUrl}/products`}>
                                 <Button size="lg" className="h-14 px-8 text-lg rounded-full bg-green-700 hover:bg-green-800 transition-all shadow-lg hover:shadow-green-700/25">
                                     Shop Fresh
                                     <ArrowRight className="ml-2 h-5 w-5" />
                                 </Button>
                             </Link>
-                            <Link href="/subscriptions">
+                            <Link href={`${baseUrl}/subscriptions`}>
                                 <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-full border-2 border-gray-200 hover:border-green-600 hover:text-green-700 hover:bg-green-50 transition-all">
                                     View Plans
                                 </Button>
