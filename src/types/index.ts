@@ -3,6 +3,7 @@ export const Role = {
   CUSTOMER: 'CUSTOMER',
   ADMIN: 'ADMIN',
   DELIVERY_PARTNER: 'DELIVERY_PARTNER',
+  SUPERADMIN: 'SUPERADMIN',
 } as const;
 
 export const OrderStatus = {

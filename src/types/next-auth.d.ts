@@ -8,12 +8,15 @@ declare module 'next-auth' {
       email: string;
       name: string | null;
       role: string;
+      tenantId: string | null;
+      activeTenantId?: string | null; // For SUPERADMIN to switch between tenants
       image?: string | null;
     };
   }
 
   interface User {
     role: string;
+    tenantId?: string | null;
   }
 }
 
@@ -21,5 +24,7 @@ declare module 'next-auth/jwt' {
   interface JWT {
     role: string;
     id: string;
+    tenantId?: string | null;
+    activeTenantId?: string | null;
   }
 }

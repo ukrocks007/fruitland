@@ -4,37 +4,81 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log('🌱 Seeding database with multi-tenant architecture...');
 
-  // Create admin user
+  // Create default tenant
+  const defaultTenant = await prisma.tenant.upsert({
+    where: { id: 'default-tenant' },
+    update: {},
+    create: {
+      id: 'default-tenant',
+      name: 'Default Tenant',
+      slug: 'default',
+    },
+  });
+  console.log('✅ Default tenant created:', defaultTenant.name);
+
+  // Create SUPERADMIN user (no tenantId)
+  const superadminPassword = await bcrypt.hash('superadmin123', 10);
+  const superadmin = await prisma.user.upsert({
+    where: { 
+      email_tenantId: {
+        email: 'superadmin@fruitland.com',
+        tenantId: null
+      }
+    },
+    update: {},
+    create: {
+      email: 'superadmin@fruitland.com',
+      name: 'Super Admin',
+      password: superadminPassword,
+      role: 'SUPERADMIN',
+      tenantId: null,
+    },
+  });
+  console.log('✅ Superadmin user created:', superadmin.email);
+
+  // Create admin user for default tenant
   const adminPassword = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@fruitland.com' },
+    where: { 
+      email_tenantId: {
+        email: 'admin@fruitland.com',
+        tenantId: defaultTenant.id
+      }
+    },
     update: {},
     create: {
       email: 'admin@fruitland.com',
       name: 'Admin User',
       password: adminPassword,
       role: 'ADMIN',
+      tenantId: defaultTenant.id,
     },
   });
   console.log('✅ Admin user created:', admin.email);
 
-  // Create test customer
+  // Create test customer for default tenant
   const customerPassword = await bcrypt.hash('customer123', 10);
   const customer = await prisma.user.upsert({
-    where: { email: 'customer@example.com' },
+    where: { 
+      email_tenantId: {
+        email: 'customer@example.com',
+        tenantId: defaultTenant.id
+      }
+    },
     update: {},
     create: {
       email: 'customer@example.com',
       name: 'Test Customer',
       password: customerPassword,
       role: 'CUSTOMER',
+      tenantId: defaultTenant.id,
     },
   });
   console.log('✅ Customer user created:', customer.email);
 
-  // Create sample products
+  // Create sample products for default tenant
   const products = [
     {
       name: 'Fresh Apples',
@@ -45,6 +89,7 @@ async function main() {
       stock: 100,
       isAvailable: true,
       isSeasonal: false,
+      tenantId: defaultTenant.id,
     },
     {
       name: 'Organic Bananas',
@@ -55,6 +100,7 @@ async function main() {
       stock: 150,
       isAvailable: true,
       isSeasonal: false,
+      tenantId: defaultTenant.id,
     },
     {
       name: 'Seasonal Strawberries',
@@ -65,6 +111,7 @@ async function main() {
       stock: 50,
       isAvailable: true,
       isSeasonal: true,
+      tenantId: defaultTenant.id,
     },
     {
       name: 'Exotic Mango',
@@ -75,6 +122,7 @@ async function main() {
       stock: 30,
       isAvailable: true,
       isSeasonal: true,
+      tenantId: defaultTenant.id,
     },
     {
       name: 'Fresh Oranges',
@@ -85,6 +133,7 @@ async function main() {
       stock: 200,
       isAvailable: true,
       isSeasonal: false,
+      tenantId: defaultTenant.id,
     },
     {
       name: 'Organic Avocado',
@@ -95,6 +144,7 @@ async function main() {
       stock: 80,
       isAvailable: true,
       isSeasonal: false,
+      tenantId: defaultTenant.id,
     },
     {
       name: 'Dragon Fruit',
@@ -105,6 +155,7 @@ async function main() {
       stock: 25,
       isAvailable: true,
       isSeasonal: false,
+      tenantId: defaultTenant.id,
     },
     {
       name: 'Watermelon',
@@ -115,12 +166,16 @@ async function main() {
       stock: 60,
       isAvailable: true,
       isSeasonal: true,
+      tenantId: defaultTenant.id,
     },
   ];
 
   for (const product of products) {
     const existing = await prisma.product.findFirst({
-      where: { name: product.name },
+      where: { 
+        name: product.name,
+        tenantId: defaultTenant.id
+      },
     });
     
     if (!existing) {
@@ -129,99 +184,17 @@ async function main() {
       });
     }
   }
-  console.log(`✅ Created ${products.length} products`);
+  console.log(`✅ Created ${products.length} products for default tenant`);
 
-  // Get all products for creating sample orders
-  const allProducts = await prisma.product.findMany();
-  
-  // Create a sample address for the customer
-  const customerAddress = await prisma.address.upsert({
-    where: { id: 'sample-address-1' },
-    update: {},
-    create: {
-      id: 'sample-address-1',
-      userId: customer.id,
-      name: 'Test Customer',
-      phone: '9876543210',
-      addressLine1: '123 Main Street',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      pincode: '400001',
-      isDefault: true,
-    },
-  });
-  console.log('✅ Created sample address');
-
-  // Create sample orders to generate recommendation data
-  const sampleOrders = [
-    // Order 1: Apples, Bananas, Oranges (frequently bought together)
-    {
-      products: ['Fresh Apples', 'Organic Bananas', 'Fresh Oranges'],
-    },
-    // Order 2: Apples, Bananas, Strawberries
-    {
-      products: ['Fresh Apples', 'Organic Bananas', 'Seasonal Strawberries'],
-    },
-    // Order 3: Mango, Dragon Fruit, Watermelon (exotic/seasonal)
-    {
-      products: ['Exotic Mango', 'Dragon Fruit', 'Watermelon'],
-    },
-    // Order 4: Avocado, Bananas, Apples
-    {
-      products: ['Organic Avocado', 'Organic Bananas', 'Fresh Apples'],
-    },
-    // Order 5: Apples, Oranges (repeat order)
-    {
-      products: ['Fresh Apples', 'Fresh Oranges'],
-    },
-  ];
-
-  let orderCount = 0;
-  for (const orderData of sampleOrders) {
-    const orderProducts = allProducts.filter(p => orderData.products.includes(p.name));
-    if (orderProducts.length === 0) continue;
-
-    const totalAmount = orderProducts.reduce((sum, p) => sum + p.price, 0);
-    const orderNumber = `ORD-${Date.now()}-${orderCount}`;
-
-    const existingOrder = await prisma.order.findFirst({
-      where: { orderNumber },
-    });
-
-    if (!existingOrder) {
-      await prisma.order.create({
-        data: {
-          userId: customer.id,
-          addressId: customerAddress.id,
-          orderNumber,
-          totalAmount,
-          status: 'DELIVERED',
-          paymentStatus: 'PAID',
-          items: {
-            create: orderProducts.map(p => ({
-              productId: p.id,
-              quantity: 1,
-              price: p.price,
-            })),
-          },
-        },
-      });
-      orderCount++;
-    }
-  }
-  console.log(`✅ Created ${orderCount} sample orders for recommendations`);
-
-  console.log('🎉 Seeding completed!');
-  console.log('\n📝 Test Credentials:');
-  console.log('Admin: admin@fruitland.com / admin123');
-  console.log('Customer: customer@example.com / customer123');
+  console.log('✅ Database seeding completed successfully!');
 }
 
 main()
-  .catch((e) => {
-    console.error('❌ Error seeding database:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
+  .then(async () => {
     await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error('❌ Error seeding database:', e);
+    await prisma.$disconnect();
+    process.exit(1);
   });
