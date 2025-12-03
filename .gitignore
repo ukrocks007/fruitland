@@ -65,3 +65,11 @@ Thumbs.db
 
 .env*.local
 .env
+
+# Docker
+docker-compose.override.yml
+postgres-init/*.sql
+
+# Database backups
+*.sql
+*.dump
