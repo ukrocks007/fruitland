@@ -6,7 +6,7 @@ import { Role } from '@/types';
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== Role.ADMIN) {
+  if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
     redirect('/auth/signin');
   }
 

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { TenantSelector } from '@/components/tenant-selector';
 import {
   Store,
   ShoppingCart,
@@ -171,7 +172,10 @@ export function AdminNavigation() {
 
   return (
     <div className="flex-row justify-between items-center gap-4 mb-8">
-      <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <TenantSelector />
+      </div>
       <div className="grid grid-cols-2 sm:flex gap-2 flex-wrap">
         {navItems.map((item) => {
           const Icon = item.icon;
