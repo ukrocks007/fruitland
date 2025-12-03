@@ -14,11 +14,11 @@ import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 
 interface PageProps {
-  params: { tenantSlug: string };
+  params: Promise<{ tenantSlug: string }>;
 }
 
 export default async function TenantHomePage({ params }: PageProps) {
-  const { tenantSlug } = params;
+  const { tenantSlug } = await params;
   
   // Get tenant
   const tenant = await getTenantBySlug(tenantSlug);

@@ -50,6 +50,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get user's tenantId
+    if (!session.user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const { name, description, price, image, category, stock, isAvailable, isSeasonal } = body;
 
@@ -62,6 +70,7 @@ export async function POST(request: NextRequest) {
 
     const product = await prisma.product.create({
       data: {
+        tenantId: session.user.tenantId,
         name,
         description,
         price,

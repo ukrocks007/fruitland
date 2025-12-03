@@ -3,10 +3,10 @@ import { getTenantBySlug } from '@/lib/tenant';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = params;
+    const { slug } = await params;
 
     const tenant = await getTenantBySlug(slug);
 

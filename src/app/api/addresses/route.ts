@@ -15,8 +15,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get user's tenantId
+    if (!session.user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
     const addresses = await prisma.address.findMany({
-      where: { userId: session.user.id },
+      where: { 
+        userId: session.user.id,
+        tenantId: session.user.tenantId,
+      },
       orderBy: [
         { isDefault: 'desc' },
         { createdAt: 'desc' },
@@ -45,6 +56,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get user's tenantId
+    if (!session.user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const { name, phone, addressLine1, addressLine2, city, state, pincode, isDefault } = body;
 
@@ -60,6 +79,7 @@ export async function POST(request: NextRequest) {
       await prisma.address.updateMany({
         where: {
           userId: session.user.id,
+          tenantId: session.user.tenantId,
           isDefault: true,
         },
         data: {
@@ -71,6 +91,7 @@ export async function POST(request: NextRequest) {
     const address = await prisma.address.create({
       data: {
         userId: session.user.id,
+        tenantId: session.user.tenantId,
         name,
         phone,
         addressLine1,

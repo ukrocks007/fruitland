@@ -21,6 +21,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get user's tenantId
+    if (!session.user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const { 
       items, 
@@ -43,6 +51,7 @@ export async function POST(request: NextRequest) {
     const products = await prisma.product.findMany({
       where: {
         id: { in: productIds },
+        tenantId: session.user.tenantId,
         isAvailable: true,
       },
     });
@@ -91,6 +100,7 @@ export async function POST(request: NextRequest) {
     let posAddress = await prisma.address.findFirst({
       where: {
         userId: session.user.id,
+        tenantId: session.user.tenantId,
         name: 'In-Store POS',
       },
     });
@@ -99,6 +109,7 @@ export async function POST(request: NextRequest) {
       posAddress = await prisma.address.create({
         data: {
           userId: session.user.id,
+          tenantId: session.user.tenantId,
           name: 'In-Store POS',
           phone: '0000000000',
           addressLine1: 'In-Store Purchase',
@@ -114,6 +125,7 @@ export async function POST(request: NextRequest) {
     const order = await prisma.order.create({
       data: {
         userId: session.user.id,
+        tenantId: session.user.tenantId,
         addressId: posAddress.id,
         orderNumber,
         totalAmount,

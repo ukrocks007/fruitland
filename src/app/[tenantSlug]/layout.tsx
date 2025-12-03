@@ -4,11 +4,12 @@ import type { Metadata } from 'next';
 
 interface TenantLayoutProps {
   children: React.ReactNode;
-  params: { tenantSlug: string };
+  params: Promise<{ tenantSlug: string }>;
 }
 
-export async function generateMetadata({ params }: TenantLayoutProps): Promise<Metadata> {
-  const tenant = await getTenantBySlug(params.tenantSlug);
+export async function generateMetadata({ params }: { params: Promise<{ tenantSlug: string }> }): Promise<Metadata> {
+  const { tenantSlug } = await params;
+  const tenant = await getTenantBySlug(tenantSlug);
   
   if (!tenant) {
     return {
@@ -24,7 +25,8 @@ export async function generateMetadata({ params }: TenantLayoutProps): Promise<M
 
 export default async function TenantLayout({ children, params }: TenantLayoutProps) {
   // Validate tenant exists
-  const tenant = await getTenantBySlug(params.tenantSlug);
+  const { tenantSlug } = await params;
+  const tenant = await getTenantBySlug(tenantSlug);
   
   if (!tenant) {
     notFound();

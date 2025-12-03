@@ -46,6 +46,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get user's tenantId
+    if (!session.user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const { name, city, pincode, zone, contactName, contactPhone, contactEmail, isActive } = body;
 
@@ -58,6 +66,7 @@ export async function POST(request: NextRequest) {
 
     const warehouse = await prisma.warehouse.create({
       data: {
+        tenantId: session.user.tenantId,
         name,
         city,
         pincode,

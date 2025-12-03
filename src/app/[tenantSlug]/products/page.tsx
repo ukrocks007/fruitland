@@ -8,13 +8,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 interface PageProps {
-  params: { tenantSlug: string };
-  searchParams: { category?: string; search?: string };
+  params: Promise<{ tenantSlug: string }>;
+  searchParams: Promise<{ category?: string; search?: string }>;
 }
 
 export default async function ProductsPage({ params, searchParams }: PageProps) {
-  const { tenantSlug } = params;
-  const { category, search } = searchParams;
+  const { tenantSlug } = await params;
+  const { category, search } = await searchParams;
 
   // Get tenant
   const tenant = await getTenantBySlug(tenantSlug);
