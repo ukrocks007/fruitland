@@ -49,12 +49,18 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.role = user.role;
         token.id = user.id;
         token.tenantId = user.tenantId || null;
       }
+      
+      // Handle session updates (e.g., when SUPERADMIN switches tenants)
+      if (trigger === 'update' && session?.activeTenantId !== undefined) {
+        token.activeTenantId = session.activeTenantId;
+      }
+      
       return token;
     },
     async session({ session, token }) {

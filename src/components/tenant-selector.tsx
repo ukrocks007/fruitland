@@ -12,7 +12,7 @@ interface Tenant {
 }
 
 export function TenantSelector() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const router = useRouter();
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
@@ -37,6 +37,11 @@ export function TenantSelector() {
       if (response.ok) {
         const data = await response.json();
         setTenants(data);
+        
+        // If no tenant is selected and we have tenants, set the first one as default
+        if (!session?.user?.activeTenantId && data.length > 0) {
+          handleTenantChange(data[0].id);
+        }
       }
     } catch (error) {
       console.error('Error fetching tenants:', error);
@@ -46,17 +51,12 @@ export function TenantSelector() {
   const handleTenantChange = async (tenantId: string) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/tenant/set-active', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tenantId: tenantId || null }),
-      });
-
-      if (response.ok) {
-        setSelectedTenantId(tenantId);
-        // Refresh the page to apply the new tenant context
-        router.refresh();
-      }
+      // Update session with new activeTenantId
+      await update({ activeTenantId: tenantId });
+      setSelectedTenantId(tenantId);
+      
+      // Refresh the page to apply the new tenant context
+      router.refresh();
     } catch (error) {
       console.error('Error setting tenant:', error);
     } finally {

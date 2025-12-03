@@ -1,19 +1,41 @@
+'use client';
+
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { useSession, signOut } from 'next-auth/react';
 import { Role } from '@/types';
 import Link from 'next/link';
+import { useEffect } from 'react';
+import { LogOut } from 'lucide-react';
 
-export default async function SuperAdminLayout({
+export default function SuperAdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
+  const { data: session, status } = useSession();
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      redirect('/auth/signin');
+    }
+  }, [status]);
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
 
   if (!session || session.user.role !== Role.SUPERADMIN) {
     redirect('/auth/signin');
+    return null;
   }
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: '/auth/signin' });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -52,6 +74,14 @@ export default async function SuperAdminLayout({
               <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
                 SUPERADMIN
               </span>
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium text-red-700 hover:text-red-900 hover:bg-red-50"
+                title="Logout"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 interface Tenant {
   id: string;
@@ -29,6 +30,7 @@ export default function TenantsPage() {
   });
   const [creating, setCreating] = useState(false);
   const router = useRouter();
+  const { update } = useSession();
 
   useEffect(() => {
     fetchTenants();
@@ -81,18 +83,14 @@ export default function TenantsPage() {
 
   const handleViewTenant = async (tenantId: string) => {
     try {
-      // Set active tenant and navigate to admin
-      const response = await fetch('/api/tenant/set-active', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tenantId }),
-      });
-
-      if (response.ok) {
-        router.push('/admin');
-      }
+      // Set active tenant in session
+      await update({ activeTenantId: tenantId });
+      
+      // Navigate to admin portal
+      router.push('/admin');
     } catch (error) {
       console.error('Error setting active tenant:', error);
+      alert('Failed to switch to tenant view');
     }
   };
 

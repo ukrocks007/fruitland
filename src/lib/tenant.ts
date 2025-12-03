@@ -1,10 +1,11 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from './auth';
 import { Role } from '@/types';
+import { prisma } from './prisma';
 
 /**
  * Get the active tenant ID for the current session
- * For SUPERADMIN: returns activeTenantId if set, null otherwise
+ * For SUPERADMIN: returns activeTenantId if set, otherwise falls back to first tenant
  * For other roles: returns their tenantId
  */
 export async function getActiveTenantId(): Promise<string | null> {
@@ -16,7 +17,21 @@ export async function getActiveTenantId(): Promise<string | null> {
 
   // SUPERADMIN can switch tenants via activeTenantId
   if (session.user.role === Role.SUPERADMIN) {
-    return session.user.activeTenantId || null;
+    // If activeTenantId is set, use it
+    if (session.user.activeTenantId) {
+      return session.user.activeTenantId;
+    }
+    
+    // Otherwise, fallback to the first tenant in the database
+    try {
+      const firstTenant = await prisma.tenant.findFirst({
+        orderBy: { createdAt: 'asc' },
+      });
+      return firstTenant?.id || null;
+    } catch (error) {
+      console.error('Error fetching first tenant:', error);
+      return null;
+    }
   }
 
   // All other roles use their fixed tenantId
