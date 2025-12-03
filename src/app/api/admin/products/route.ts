@@ -3,13 +3,24 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@/types';
+import { getActiveTenantId } from '@/lib/tenant';
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get active tenant ID
+    const tenantId = await getActiveTenantId();
+    
+    if (!tenantId) {
+      return NextResponse.json(
+        { error: 'Tenant ID is required. Please select a tenant.' },
+        { status: 400 }
+      );
     }
 
     const body = await request.json();
@@ -24,6 +35,7 @@ export async function POST(request: NextRequest) {
 
     const product = await prisma.product.create({
       data: {
+        tenantId,
         name,
         description: description || '',
         price: parseFloat(price),
