@@ -1,12 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@/types';
-import { getActiveTenantId } from '@/lib/tenant';
+import { getActiveTenantIdFromRequest } from '@/lib/tenant';
 
 // GET all orders (admin only)
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -14,8 +14,11 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get active tenant ID
-    const tenantId = await getActiveTenantId();
+    // Get active tenant ID from query params
+    const { searchParams } = new URL(request.url);
+    const tenantId = await getActiveTenantIdFromRequest({ 
+      tenantId: searchParams.get('tenantId') || undefined 
+    });
     
     if (!tenantId) {
       return NextResponse.json(

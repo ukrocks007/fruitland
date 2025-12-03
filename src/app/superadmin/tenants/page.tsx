@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 
 interface Tenant {
   id: string;
@@ -30,7 +29,6 @@ export default function TenantsPage() {
   });
   const [creating, setCreating] = useState(false);
   const router = useRouter();
-  const { update } = useSession();
 
   useEffect(() => {
     fetchTenants();
@@ -83,13 +81,10 @@ export default function TenantsPage() {
 
   const handleViewTenant = async (tenantId: string) => {
     try {
-      // Set active tenant in session
-      await update({ activeTenantId: tenantId });
-      
-      // Navigate to admin portal
-      router.push('/admin');
+      // Navigate to admin portal with tenantId parameter
+      router.push(`/admin?tenantId=${tenantId}`);
     } catch (error) {
-      console.error('Error setting active tenant:', error);
+      console.error('Error navigating to tenant view:', error);
       alert('Failed to switch to tenant view');
     }
   };

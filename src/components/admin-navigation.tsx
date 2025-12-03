@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { TenantSelector } from '@/components/tenant-selector';
 import {
@@ -174,7 +174,9 @@ export function AdminNavigation() {
     <div className="flex-row justify-between items-center gap-4 mb-8">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <TenantSelector />
+        <Suspense fallback={<div className="text-sm text-gray-500">Loading...</div>}>
+          <TenantSelector />
+        </Suspense>
       </div>
       <div className="grid grid-cols-2 sm:flex gap-2 flex-wrap">
         {navItems.map((item) => {

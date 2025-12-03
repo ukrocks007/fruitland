@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@/types';
-import { getActiveTenantId } from '@/lib/tenant';
+import { getActiveTenantIdFromRequest } from '@/lib/tenant';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,8 +13,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get active tenant ID
-    const tenantId = await getActiveTenantId();
+    // Get active tenant ID from query params
+    const { searchParams } = new URL(request.url);
+    const tenantId = await getActiveTenantIdFromRequest({ 
+      tenantId: searchParams.get('tenantId') || undefined 
+    });
     
     if (!tenantId) {
       return NextResponse.json(

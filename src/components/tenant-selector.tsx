@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Role } from '@/types';
 
 interface Tenant {
@@ -12,8 +12,10 @@ interface Tenant {
 }
 
 export function TenantSelector() {
-  const { data: session, update } = useSession();
+  const { data: session } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,11 +27,12 @@ export function TenantSelector() {
 
   useEffect(() => {
     fetchTenants();
-    // Get current active tenant from session
-    if (session?.user?.activeTenantId) {
-      setSelectedTenantId(session.user.activeTenantId);
+    // Get current active tenant from URL parameter
+    const tenantIdFromUrl = searchParams.get('tenantId');
+    if (tenantIdFromUrl) {
+      setSelectedTenantId(tenantIdFromUrl);
     }
-  }, [session]);
+  }, [searchParams]);
 
   const fetchTenants = async () => {
     try {
@@ -39,7 +42,8 @@ export function TenantSelector() {
         setTenants(data);
         
         // If no tenant is selected and we have tenants, set the first one as default
-        if (!session?.user?.activeTenantId && data.length > 0) {
+        const currentTenantId = searchParams.get('tenantId');
+        if (!currentTenantId && data.length > 0) {
           handleTenantChange(data[0].id);
         }
       }
@@ -51,12 +55,12 @@ export function TenantSelector() {
   const handleTenantChange = async (tenantId: string) => {
     setLoading(true);
     try {
-      // Update session with new activeTenantId
-      await update({ activeTenantId: tenantId });
       setSelectedTenantId(tenantId);
       
-      // Refresh the page to apply the new tenant context
-      router.refresh();
+      // Update URL with new tenantId parameter
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('tenantId', tenantId);
+      router.push(`${pathname}?${params.toString()}`);
     } catch (error) {
       console.error('Error setting tenant:', error);
     } finally {

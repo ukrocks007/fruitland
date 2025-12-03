@@ -9,7 +9,6 @@ declare module 'next-auth' {
       name: string | null;
       role: string;
       tenantId: string | null;
-      activeTenantId?: string | null; // For SUPERADMIN to switch between tenants
       image?: string | null;
     };
   }
@@ -25,6 +24,5 @@ declare module 'next-auth/jwt' {
     role: string;
     id: string;
     tenantId?: string | null;
-    activeTenantId?: string | null;
   }
 }
