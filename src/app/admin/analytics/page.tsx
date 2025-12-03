@@ -17,6 +17,7 @@ import {
 import { AdminCharts } from '@/components/admin-charts';
 import { prisma } from '@/lib/prisma';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
+import { getActiveTenantId } from '@/lib/tenant';
 
 interface RecentOrder {
   id: string;
@@ -41,10 +42,15 @@ interface TopProduct {
 const CACHE_KEY = 'dashboard_analytics';
 const CACHE_TTL_MINUTES = 5; // Cache expires after 5 minutes
 
-async function getCachedAnalytics() {
+async function getCachedAnalytics(tenantId: string) {
   try {
     const cached = await prisma.analyticsCache.findUnique({
-      where: { key: CACHE_KEY },
+      where: { 
+        tenantId_key: {
+          tenantId,
+          key: CACHE_KEY,
+        }
+      },
     });
 
     if (cached && cached.expiresAt > new Date()) {
@@ -57,17 +63,23 @@ async function getCachedAnalytics() {
   }
 }
 
-async function setCachedAnalytics(data: object) {
+async function setCachedAnalytics(tenantId: string, data: object) {
   try {
     const expiresAt = new Date(Date.now() + CACHE_TTL_MINUTES * 60 * 1000);
 
     await prisma.analyticsCache.upsert({
-      where: { key: CACHE_KEY },
+      where: { 
+        tenantId_key: {
+          tenantId,
+          key: CACHE_KEY,
+        }
+      },
       update: {
         data: JSON.stringify(data),
         expiresAt,
       },
       create: {
+        tenantId,
         key: CACHE_KEY,
         data: JSON.stringify(data),
         expiresAt,
@@ -78,10 +90,10 @@ async function setCachedAnalytics(data: object) {
   }
 }
 
-async function getAnalytics() {
+async function getAnalytics(tenantId: string) {
   try {
     // Check cache first
-    const cached = await getCachedAnalytics();
+    const cached = await getCachedAnalytics(tenantId);
     if (cached) {
       return cached;
     }
@@ -109,22 +121,30 @@ async function getAnalytics() {
     ] = await Promise.all([
       // Active subscriptions count
       prisma.subscription.count({
-        where: { status: 'ACTIVE' },
+        where: { 
+          tenantId,
+          status: 'ACTIVE',
+        },
       }),
       // Active subscriptions for MRR
       prisma.subscription.findMany({
-        where: { status: 'ACTIVE' },
+        where: { 
+          tenantId,
+          status: 'ACTIVE',
+        },
         select: { totalAmount: true },
       }),
       // Orders this month
       prisma.order.count({
         where: {
+          tenantId,
           createdAt: { gte: startMonth, lte: endMonth },
         },
       }),
       // Revenue this month
       prisma.order.findMany({
         where: {
+          tenantId,
           createdAt: { gte: startMonth, lte: endMonth },
           paymentStatus: 'PAID',
         },
@@ -132,14 +152,22 @@ async function getAnalytics() {
       }),
       // Total customers
       prisma.user.count({
-        where: { role: 'CUSTOMER' },
+        where: { 
+          tenantId,
+          role: 'CUSTOMER',
+        },
       }),
       // Low stock products
       prisma.product.count({
-        where: { stock: { lte: 10 }, isAvailable: true },
+        where: {
+          tenantId,
+          stock: { lte: 10 },
+          isAvailable: true,
+        },
       }),
       // Recent orders - include items and address for full data structure
       prisma.order.findMany({
+        where: { tenantId },
         take: 10,
         include: {
           items: { include: { product: true } },
@@ -154,15 +182,20 @@ async function getAnalytics() {
         _sum: { quantity: true },
         orderBy: { _sum: { quantity: 'desc' } },
         take: 5,
+        where: {
+          order: { tenantId },
+        },
       }),
       // Orders by status
       prisma.order.groupBy({
         by: ['status'],
         _count: true,
+        where: { tenantId },
       }),
       // All paid orders in last 6 months for revenue calculations
       prisma.order.findMany({
         where: {
+          tenantId,
           createdAt: { gte: sixMonthsAgo },
           paymentStatus: 'PAID',
         },
@@ -179,6 +212,7 @@ async function getAnalytics() {
       // All subscriptions for growth tracking
       prisma.subscription.findMany({
         where: {
+          tenantId,
           createdAt: { lte: endMonth },
           status: 'ACTIVE',
         },
@@ -278,7 +312,7 @@ async function getAnalytics() {
     };
 
     // Cache the results
-    await setCachedAnalytics(analyticsData);
+    await setCachedAnalytics(tenantId, analyticsData);
 
     return analyticsData;
   } catch (error) {
@@ -290,11 +324,28 @@ async function getAnalytics() {
 export default async function AdminAnalyticsPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== Role.ADMIN) {
+  if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
     redirect('/auth/signin');
   }
 
-  const analytics = await getAnalytics();
+  // Get active tenant ID
+  const tenantId = await getActiveTenantId();
+  
+  if (!tenantId) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <AdminNavigation />
+          <div className="text-center py-12">
+            <p className="text-gray-600">Please select a tenant to view analytics.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const analytics = await getAnalytics(tenantId);
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@/types';
 import { subMonths, startOfMonth, addDays, format } from 'date-fns';
+import { getActiveTenantId } from '@/lib/tenant';
 
 /**
  * GET: Fetch all forecasts with product info
@@ -12,12 +13,19 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const tenantId = await getActiveTenantId();
+    
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant ID required' }, { status: 400 });
     }
 
     // Get latest forecast for each product
     const forecasts = await prisma.inventoryForecast.findMany({
+      where: { tenantId },
       include: {
         product: {
           select: {
@@ -65,8 +73,14 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const tenantId = await getActiveTenantId();
+    
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant ID required' }, { status: 400 });
     }
 
     // Parse optional parameters
@@ -80,7 +94,10 @@ export async function POST(request: NextRequest) {
 
     // Get all products
     const products = await prisma.product.findMany({
-      where: { isAvailable: true },
+      where: { 
+        tenantId,
+        isAvailable: true,
+      },
       select: {
         id: true,
         name: true,
@@ -93,6 +110,7 @@ export async function POST(request: NextRequest) {
     const orderItems = await prisma.orderItem.findMany({
       where: {
         order: {
+          tenantId,
           createdAt: { gte: lookbackStart, lte: now },
           paymentStatus: 'PAID',
         },
@@ -200,6 +218,7 @@ export async function POST(request: NextRequest) {
       // Initial implementation treats them normally, but flags are available for future enhancement
       
       forecastsToCreate.push({
+        tenantId,
         productId: product.id,
         forecastDate,
         expectedQuantity,
@@ -214,6 +233,7 @@ export async function POST(request: NextRequest) {
     await prisma.$transaction([
       prisma.inventoryForecast.deleteMany({
         where: {
+          tenantId,
           productId: { in: productIds },
         },
       }),

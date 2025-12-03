@@ -3,16 +3,25 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@/types';
+import { getActiveTenantId } from '@/lib/tenant';
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const configs = await prisma.config.findMany();
+    const tenantId = await getActiveTenantId();
+    
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant ID required' }, { status: 400 });
+    }
+
+    const configs = await prisma.config.findMany({
+      where: { tenantId },
+    });
 
     return NextResponse.json({ configs });
   } catch (error) {
@@ -28,8 +37,14 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const tenantId = await getActiveTenantId();
+    
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant ID required' }, { status: 400 });
     }
 
     const body = await request.json();
@@ -45,9 +60,15 @@ export async function POST(request: NextRequest) {
     // Upsert each config item
     const promises = configs.map(({ key, value, label }: { key: string; value: string; label?: string }) =>
       prisma.config.upsert({
-        where: { key },
+        where: { 
+          tenantId_key: {
+            tenantId,
+            key,
+          }
+        },
         update: { value },
         create: { 
+          tenantId,
           key, 
           value,
           label: label || key,

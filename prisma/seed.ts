@@ -20,23 +20,29 @@ async function main() {
 
   // Create SUPERADMIN user (no tenantId)
   const superadminPassword = await bcrypt.hash('superadmin123', 10);
-  const superadmin = await prisma.user.upsert({
-    where: { 
-      email_tenantId: {
-        email: 'superadmin@fruitland.com',
-        tenantId: null
-      }
-    },
-    update: {},
-    create: {
+  
+  // Check if superadmin exists (handle unique constraint with null tenantId)
+  const existingSuperadmin = await prisma.user.findFirst({
+    where: {
       email: 'superadmin@fruitland.com',
-      name: 'Super Admin',
-      password: superadminPassword,
-      role: 'SUPERADMIN',
       tenantId: null,
     },
   });
-  console.log('✅ Superadmin user created:', superadmin.email);
+
+  if (!existingSuperadmin) {
+    const superadmin = await prisma.user.create({
+      data: {
+        email: 'superadmin@fruitland.com',
+        name: 'Super Admin',
+        password: superadminPassword,
+        role: 'SUPERADMIN',
+        tenantId: null,
+      },
+    });
+    console.log('✅ Superadmin user created:', superadmin.email);
+  } else {
+    console.log('✅ Superadmin user already exists:', existingSuperadmin.email);
+  }
 
   // Create admin user for default tenant
   const adminPassword = await bcrypt.hash('admin123', 10);

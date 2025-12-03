@@ -3,21 +3,28 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@/types';
+import { getActiveTenantId } from '@/lib/tenant';
 
 // GET all product stocks across warehouses
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const tenantId = await getActiveTenantId();
+    
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant ID required' }, { status: 400 });
     }
 
     const { searchParams } = new URL(request.url);
     const warehouseId = searchParams.get('warehouseId');
     const productId = searchParams.get('productId');
 
-    const where: { warehouseId?: string; productId?: string } = {};
+    const where: { tenantId: string; warehouseId?: string; productId?: string } = { tenantId };
     if (warehouseId) where.warehouseId = warehouseId;
     if (productId) where.productId = productId;
 
@@ -48,8 +55,14 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const tenantId = await getActiveTenantId();
+    
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant ID required' }, { status: 400 });
     }
 
     const body = await request.json();
@@ -82,6 +95,7 @@ export async function POST(request: NextRequest) {
         ...(reservedQuantity !== undefined && { reservedQuantity }),
       },
       create: {
+        tenantId,
         warehouseId,
         productId,
         quantity: quantity || 0,
@@ -108,8 +122,14 @@ export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const tenantId = await getActiveTenantId();
+    
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant ID required' }, { status: 400 });
     }
 
     const body = await request.json();
@@ -181,6 +201,7 @@ export async function PATCH(request: NextRequest) {
           },
         },
         create: {
+          tenantId,
           warehouseId: toWarehouseId,
           productId,
           quantity: transferQuantity,
