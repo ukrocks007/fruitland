@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { Role } from '@/types';
 import { calculateSummary, calculateRFM } from '@/lib/analytics';
 import { SummaryApiResponse, RFMSummary } from '@/types/analytics';
+import { getActiveTenantId } from '@/lib/tenant';
 
 export interface ExtendedSummaryApiResponse extends Omit<SummaryApiResponse, 'data'> {
   data?: SummaryApiResponse['data'] & {
@@ -15,16 +16,24 @@ export async function GET(): Promise<NextResponse<ExtendedSummaryApiResponse>> {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    const tenantId = await getActiveTenantId();
+    if (!tenantId) {
+      return NextResponse.json(
+        { success: false, error: 'Tenant ID required' },
+        { status: 400 }
+      );
+    }
+
     const [summary, rfm] = await Promise.all([
-      calculateSummary(),
-      calculateRFM(),
+      calculateSummary(tenantId),
+      calculateRFM(tenantId),
     ]);
 
     return NextResponse.json({

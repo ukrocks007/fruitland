@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
 
     const subscription = await prisma.subscription.create({
       data: {
+        tenantId: session.user.tenantId!,
         userId: session.user.id,
         addressId,
         subscriptionNumber,

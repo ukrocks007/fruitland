@@ -2,21 +2,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getActiveTenantId } from '@/lib/tenant';
 import { Role } from '@/types';
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session?.user || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPERADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const tenantId = await getActiveTenantId();
+    if (!tenantId) {
+      return NextResponse.json({ error: 'No tenant selected' }, { status: 400 });
+    }
+
     const packages = await prisma.subscriptionPackage.findMany({
+      where: { tenantId },
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ packages });
+    return NextResponse.json(packages);
   } catch (error) {
     console.error('Error fetching subscription packages:', error);
     return NextResponse.json(
@@ -30,8 +37,13 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session?.user || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPERADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const tenantId = await getActiveTenantId();
+    if (!tenantId) {
+      return NextResponse.json({ error: 'No tenant selected' }, { status: 400 });
     }
 
     const body = await request.json();
@@ -46,6 +58,7 @@ export async function POST(request: NextRequest) {
 
     const subscriptionPackage = await prisma.subscriptionPackage.create({
       data: {
+        tenantId,
         name,
         description: description || null,
         frequency,
@@ -56,7 +69,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ package: subscriptionPackage });
+    return NextResponse.json(subscriptionPackage);
   } catch (error) {
     console.error('Error creating subscription package:', error);
     return NextResponse.json(

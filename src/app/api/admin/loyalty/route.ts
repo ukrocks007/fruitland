@@ -4,13 +4,19 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@/types';
 import { getLoyaltySettings, LOYALTY_CONFIG_KEYS, DEFAULT_LOYALTY_SETTINGS } from '@/lib/loyalty';
+import { getActiveTenantId } from '@/lib/tenant';
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== 'SUPERADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const tenantId = await getActiveTenantId();
+    if (!tenantId) {
+      return NextResponse.json({ error: 'No tenant selected' }, { status: 400 });
     }
 
     const settings = await getLoyaltySettings();
@@ -29,8 +35,13 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== 'SUPERADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const tenantId = await getActiveTenantId();
+    if (!tenantId) {
+      return NextResponse.json({ error: 'No tenant selected' }, { status: 400 });
     }
 
     const body = await request.json();
@@ -77,9 +88,15 @@ export async function POST(request: NextRequest) {
 
     const promises = configUpdates.map(({ key, value, label, category }) =>
       prisma.config.upsert({
-        where: { key },
+        where: { 
+          tenantId_key: {
+            tenantId,
+            key
+          }
+        },
         update: { value },
         create: {
+          tenantId,
           key,
           value,
           label,

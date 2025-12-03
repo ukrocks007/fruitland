@@ -16,10 +16,15 @@ import { format, differenceInDays, differenceInMonths, startOfMonth, subMonths }
 const CACHE_KEY_PREFIX = 'advanced_analytics_';
 const CACHE_TTL_MINUTES = 15;
 
-async function getCachedData<T>(key: string): Promise<T | null> {
+async function getCachedData<T>(tenantId: string, key: string): Promise<T | null> {
   try {
     const cached = await prisma.analyticsCache.findUnique({
-      where: { key: `${CACHE_KEY_PREFIX}${key}` },
+      where: { 
+        tenantId_key: {
+          tenantId,
+          key: `${CACHE_KEY_PREFIX}${key}`
+        }
+      },
     });
 
     if (cached && cached.expiresAt > new Date()) {
@@ -31,16 +36,22 @@ async function getCachedData<T>(key: string): Promise<T | null> {
   }
 }
 
-async function setCachedData(key: string, data: object): Promise<void> {
+async function setCachedData(tenantId: string, key: string, data: object): Promise<void> {
   try {
     const expiresAt = new Date(Date.now() + CACHE_TTL_MINUTES * 60 * 1000);
     await prisma.analyticsCache.upsert({
-      where: { key: `${CACHE_KEY_PREFIX}${key}` },
+      where: { 
+        tenantId_key: {
+          tenantId,
+          key: `${CACHE_KEY_PREFIX}${key}`
+        }
+      },
       update: {
         data: JSON.stringify(data),
         expiresAt,
       },
       create: {
+        tenantId,
         key: `${CACHE_KEY_PREFIX}${key}`,
         data: JSON.stringify(data),
         expiresAt,
@@ -54,15 +65,18 @@ async function setCachedData(key: string, data: object): Promise<void> {
 /**
  * Calculate Customer Lifetime Value metrics for all customers
  */
-export async function calculateCLV(): Promise<CLVSummary> {
-  const cached = await getCachedData<CLVSummary>('clv');
+export async function calculateCLV(tenantId: string): Promise<CLVSummary> {
+  const cached = await getCachedData<CLVSummary>(tenantId, 'clv');
   if (cached) return cached;
 
   const now = new Date();
 
   // Get all customers with their orders and subscriptions
   const customers = await prisma.user.findMany({
-    where: { role: 'CUSTOMER' },
+    where: { 
+      role: 'CUSTOMER',
+      tenantId,
+    },
     include: {
       orders: {
         where: { paymentStatus: 'PAID' },
@@ -180,15 +194,15 @@ export async function calculateCLV(): Promise<CLVSummary> {
     clvDistribution: distribution,
   };
 
-  await setCachedData('clv', result);
+  await setCachedData(tenantId, 'clv', result);
   return result;
 }
 
 /**
  * Perform cohort analysis based on customer signup/first order month
  */
-export async function analyzeCohorts(): Promise<CohortAnalysis> {
-  const cached = await getCachedData<CohortAnalysis>('cohorts');
+export async function analyzeCohorts(tenantId: string): Promise<CohortAnalysis> {
+  const cached = await getCachedData<CohortAnalysis>(tenantId, 'cohorts');
   if (cached) return cached;
 
   const now = new Date();
@@ -198,6 +212,7 @@ export async function analyzeCohorts(): Promise<CohortAnalysis> {
   const customers = await prisma.user.findMany({
     where: { 
       role: 'CUSTOMER',
+      tenantId,
       createdAt: { gte: sixMonthsAgo },
     },
     include: {
@@ -326,21 +341,24 @@ export async function analyzeCohorts(): Promise<CohortAnalysis> {
     revenuePerCohort,
   };
 
-  await setCachedData('cohorts', result);
+  await setCachedData(tenantId, 'cohorts', result);
   return result;
 }
 
 /**
  * Calculate RFM scores and segments for customers
  */
-export async function calculateRFM(): Promise<RFMSummary> {
-  const cached = await getCachedData<RFMSummary>('rfm');
+export async function calculateRFM(tenantId: string): Promise<RFMSummary> {
+  const cached = await getCachedData<RFMSummary>(tenantId, 'rfm');
   if (cached) return cached;
 
   const now = new Date();
 
   const customers = await prisma.user.findMany({
-    where: { role: 'CUSTOMER' },
+    where: { 
+      role: 'CUSTOMER',
+      tenantId,
+    },
     include: {
       orders: {
         where: { paymentStatus: 'PAID' },
@@ -467,15 +485,15 @@ export async function calculateRFM(): Promise<RFMSummary> {
     rfmHeatmap,
   };
 
-  await setCachedData('rfm', result);
+  await setCachedData(tenantId, 'rfm', result);
   return result;
 }
 
 /**
  * Calculate summary metrics for advanced analytics dashboard
  */
-export async function calculateSummary(): Promise<AdvancedAnalyticsSummary> {
-  const cached = await getCachedData<AdvancedAnalyticsSummary>('summary');
+export async function calculateSummary(tenantId: string): Promise<AdvancedAnalyticsSummary> {
+  const cached = await getCachedData<AdvancedAnalyticsSummary>(tenantId, 'summary');
   if (cached) return cached;
 
   const now = new Date();
@@ -492,23 +510,25 @@ export async function calculateSummary(): Promise<AdvancedAnalyticsSummary> {
     paidOrders,
   ] = await Promise.all([
     // Total customers
-    prisma.user.count({ where: { role: 'CUSTOMER' } }),
+    prisma.user.count({ where: { role: 'CUSTOMER', tenantId } }),
     // New customers this month
     prisma.user.count({
       where: {
         role: 'CUSTOMER',
+        tenantId,
         createdAt: { gte: thisMonthStart },
       },
     }),
     // Active subscriptions with their amounts
     prisma.subscription.findMany({
-      where: { status: 'ACTIVE' },
+      where: { status: 'ACTIVE', tenantId },
       select: { totalAmount: true },
     }),
     // Cancelled subscriptions last month (for churn rate)
     prisma.subscription.count({
       where: {
         status: 'CANCELLED',
+        tenantId,
         cancelledAt: {
           gte: lastMonthStart,
           lt: thisMonthStart,
@@ -519,6 +539,7 @@ export async function calculateSummary(): Promise<AdvancedAnalyticsSummary> {
     prisma.user.count({
       where: {
         role: 'CUSTOMER',
+        tenantId,
         orders: {
           some: {
             createdAt: { gte: ninetyDaysAgo },
@@ -529,7 +550,7 @@ export async function calculateSummary(): Promise<AdvancedAnalyticsSummary> {
     }),
     // All paid orders
     prisma.order.findMany({
-      where: { paymentStatus: 'PAID' },
+      where: { paymentStatus: 'PAID', tenantId },
       select: { totalAmount: true, userId: true },
     }),
   ]);
@@ -579,6 +600,6 @@ export async function calculateSummary(): Promise<AdvancedAnalyticsSummary> {
     lifetimeRevenueProjection,
   };
 
-  await setCachedData('summary', result);
+  await setCachedData(tenantId, 'summary', result);
   return result;
 }

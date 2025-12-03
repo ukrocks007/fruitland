@@ -94,6 +94,15 @@ export async function awardLoyaltyPoints(
   }
 
   // Get user's total earned points (for tier calculation)
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { tenantId: true },
+  });
+
+  if (!user?.tenantId) {
+    throw new Error('User tenant not found');
+  }
+
   const totalEarned = await prisma.loyaltyTransaction.aggregate({
     where: {
       userId,
@@ -108,7 +117,7 @@ export async function awardLoyaltyPoints(
   const newTier = determineLoyaltyTier(newTotalEarned, settings.silverTierThreshold, settings.goldTierThreshold);
 
   // Update user's points and tier, create transaction
-  const [user] = await prisma.$transaction([
+  const [updatedUser] = await prisma.$transaction([
     prisma.user.update({
       where: { id: userId },
       data: {
@@ -118,6 +127,7 @@ export async function awardLoyaltyPoints(
     }),
     prisma.loyaltyTransaction.create({
       data: {
+        tenantId: user.tenantId,
         userId,
         orderId,
         type: LoyaltyTransactionType.EARN,
@@ -133,8 +143,8 @@ export async function awardLoyaltyPoints(
 
   return {
     pointsEarned,
-    newBalance: user.pointsBalance,
-    newTier: user.loyaltyTier,
+    newBalance: updatedUser.pointsBalance,
+    newTier: updatedUser.loyaltyTier,
   };
 }
 
@@ -161,7 +171,7 @@ export async function redeemLoyaltyPoints(
   // Get current balance
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { pointsBalance: true },
+    select: { pointsBalance: true, tenantId: true },
   });
 
   if (!user) {
@@ -170,6 +180,15 @@ export async function redeemLoyaltyPoints(
       discount: 0,
       newBalance: 0,
       error: 'User not found',
+    };
+  }
+
+  if (!user.tenantId) {
+    return {
+      success: false,
+      discount: 0,
+      newBalance: user.pointsBalance,
+      error: 'User tenant not found',
     };
   }
 
@@ -194,6 +213,7 @@ export async function redeemLoyaltyPoints(
     }),
     prisma.loyaltyTransaction.create({
       data: {
+        tenantId: user.tenantId,
         userId,
         orderId,
         type: LoyaltyTransactionType.REDEEM,

@@ -7,20 +7,12 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
     const cartItems = await prisma.cartItem.findMany({
-      where: { userId: user.id },
+      where: { userId: session.user.id },
       include: {
         product: true,
       },
@@ -38,16 +30,8 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const { productId, quantity } = await request.json();
@@ -69,7 +53,7 @@ export async function POST(request: Request) {
     const existingItem = await prisma.cartItem.findUnique({
       where: {
         userId_productId: {
-          userId: user.id,
+          userId: session.user.id,
           productId,
         },
       },
@@ -98,7 +82,7 @@ export async function POST(request: Request) {
 
       cartItem = await prisma.cartItem.create({
         data: {
-          userId: user.id,
+          userId: session.user.id,
           productId,
           quantity,
         },
@@ -117,20 +101,12 @@ export async function POST(request: Request) {
 export async function DELETE() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
     await prisma.cartItem.deleteMany({
-      where: { userId: user.id },
+      where: { userId: session.user.id },
     });
 
     return NextResponse.json({ message: 'Cart cleared' });

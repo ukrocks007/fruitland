@@ -3,17 +3,24 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@/types';
+import { getActiveTenantId } from '@/lib/tenant';
 
 // GET all warehouses
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session?.user || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPERADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const tenantId = await getActiveTenantId();
+    if (!tenantId) {
+      return NextResponse.json({ error: 'No tenant selected' }, { status: 400 });
+    }
+
     const warehouses = await prisma.warehouse.findMany({
+      where: { tenantId },
       include: {
         _count: {
           select: {
@@ -27,7 +34,7 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ warehouses });
+    return NextResponse.json(warehouses);
   } catch (error) {
     console.error('Error fetching warehouses:', error);
     return NextResponse.json(
@@ -42,8 +49,13 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session?.user || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPERADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const tenantId = await getActiveTenantId();
+    if (!tenantId) {
+      return NextResponse.json({ error: 'No tenant selected' }, { status: 400 });
     }
 
     const body = await request.json();
@@ -58,6 +70,7 @@ export async function POST(request: NextRequest) {
 
     const warehouse = await prisma.warehouse.create({
       data: {
+        tenantId,
         name,
         city,
         pincode,

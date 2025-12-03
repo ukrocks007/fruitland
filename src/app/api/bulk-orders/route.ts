@@ -29,6 +29,7 @@ export async function GET() {
 
     const orders = await prisma.order.findMany({
       where: {
+        tenantId: session.user.tenantId!,
         userId: session.user.id,
         isBulkOrder: true,
       },
@@ -130,6 +131,7 @@ export async function POST(request: NextRequest) {
     // Create bulk order (payment pending until admin confirms)
     const order = await prisma.order.create({
       data: {
+        tenantId: session.user.tenantId!,
         userId: session.user.id,
         addressId,
         orderNumber,

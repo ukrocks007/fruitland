@@ -14,9 +14,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user already exists
+    // Get or create default tenant
+    let defaultTenant = await prisma.tenant.findFirst({
+      where: { slug: 'default' },
+    });
+
+    if (!defaultTenant) {
+      defaultTenant = await prisma.tenant.create({
+        data: {
+          id: 'default-tenant',
+          name: 'Default Tenant',
+          slug: 'default',
+        },
+      });
+    }
+
+    // Check if user already exists with this email and tenant
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: {
+        email_tenantId: {
+          email,
+          tenantId: defaultTenant.id,
+        },
+      },
     });
 
     if (existingUser) {
@@ -29,19 +49,21 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
+    // Create user with tenantId
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
         role: 'CUSTOMER',
+        tenantId: defaultTenant.id,
       },
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
+        tenantId: true,
       },
     });
 

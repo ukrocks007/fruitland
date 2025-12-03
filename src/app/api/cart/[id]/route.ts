@@ -10,19 +10,11 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
     const { quantity } = await request.json();
 
     if (quantity < 1) {
@@ -33,7 +25,7 @@ export async function PATCH(
     const cartItem = await prisma.cartItem.findFirst({
       where: {
         id,
-        userId: user.id,
+        userId: session.user.id,
       },
       include: { product: true },
     });
@@ -70,24 +62,17 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
 
     // Verify cart item belongs to user
     const cartItem = await prisma.cartItem.findFirst({
       where: {
         id,
-        userId: user.id,
+        userId: session.user.id,
       },
     });
 
