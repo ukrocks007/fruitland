@@ -12,10 +12,10 @@ const PUBLIC_ROUTES = [
   '/api/tenants',
 ];
 
-// Routes that are tenant-independent
+// Routes that are tenant-independent (at root level)
 const TENANT_INDEPENDENT_ROUTES = [
   '/superadmin',
-  '/auth',
+  '/auth', // Keep root /auth for backwards compatibility
 ];
 
 export async function middleware(request: NextRequest) {
@@ -61,6 +61,20 @@ export async function middleware(request: NextRequest) {
   }
 
   const tenantSlug = pathSegments[0];
+
+  // Check if this is a tenant-scoped auth route (e.g., /fruitland/auth/signin)
+  // Allow these routes without authentication
+  if (pathSegments[1] === 'auth') {
+    // Add tenant slug to request headers
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-tenant-slug', tenantSlug);
+    
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+  }
 
   // Validate tenant exists and is active (in production, check cache/DB)
   // For now, we'll let the app handle tenant validation
