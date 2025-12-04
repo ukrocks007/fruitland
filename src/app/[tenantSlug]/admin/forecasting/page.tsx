@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter } , useParams } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,6 +46,8 @@ interface ForecastData {
 }
 
 export default function ForecastingPage() {
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
   const { data: session, status } = useSession();
   const router = useRouter();
   const [forecasts, setForecasts] = useState<ForecastData[]>([]);
@@ -116,7 +118,7 @@ export default function ForecastingPage() {
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="container mx-auto px-4 py-8">
-          <AdminNavigation />
+          <AdminNavigation tenantSlug={tenantSlug} />
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-green-600" />
           </div>
@@ -130,7 +132,7 @@ export default function ForecastingPage() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        <AdminNavigation />
+        <AdminNavigation tenantSlug={tenantSlug} />
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>

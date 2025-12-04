@@ -50,6 +50,8 @@ interface PackageFormData {
 }
 
 export default function AdminSubscriptionPackagesPage() {
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
   const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -225,7 +227,7 @@ export default function AdminSubscriptionPackagesPage() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        <AdminNavigation />
+        <AdminNavigation tenantSlug={tenantSlug} />
 
         <Card>
           <CardHeader>

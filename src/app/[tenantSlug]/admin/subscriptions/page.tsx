@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter } , useParams } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,6 +45,8 @@ interface Subscription {
 }
 
 export default function AdminSubscriptionsPage() {
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
   const { data: session, status } = useSession();
   const router = useRouter();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
@@ -180,7 +182,7 @@ export default function AdminSubscriptionsPage() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        <AdminNavigation />
+        <AdminNavigation tenantSlug={tenantSlug} />
 
         <h2 className="text-2xl font-semibold mb-2">Subscription Management</h2>
         <p className="text-gray-600 mb-6">Manage all customer subscriptions</p>

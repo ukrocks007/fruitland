@@ -60,6 +60,8 @@ interface ProductStock {
 }
 
 export default function AdminInventoryWarehousePage() {
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
   const [productStocks, setProductStocks] = useState<ProductStock[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -261,7 +263,7 @@ export default function AdminInventoryWarehousePage() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        <AdminNavigation />
+        <AdminNavigation tenantSlug={tenantSlug} />
 
         <Card>
           <CardHeader>

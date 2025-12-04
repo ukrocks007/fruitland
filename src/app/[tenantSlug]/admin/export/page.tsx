@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter } , useParams } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,8 @@ import { toast } from 'sonner';
 import { Role } from '@/types';
 
 export default function AdminExportPage() {
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
   const { data: session, status } = useSession();
   const router = useRouter();
 
@@ -174,7 +176,7 @@ export default function AdminExportPage() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        <AdminNavigation />
+        <AdminNavigation tenantSlug={tenantSlug} />
 
         <h2 className="text-2xl font-semibold mb-2">Data Export</h2>
         <p className="text-gray-600 mb-6">Export your data to CSV files for reporting and analysis</p>
@@ -375,7 +377,7 @@ export default function AdminExportPage() {
           <CardContent>
             <p className="text-sm text-gray-500">
               To download an invoice for a specific order, go to the{' '}
-              <a href="/admin/orders" className="text-green-600 hover:underline font-medium">
+              <a href={`/${tenantSlug}/admin/orders`} className="text-green-600 hover:underline font-medium">
                 Orders page
               </a>
               , view the order details, and click the &quot;Download Invoice&quot; button.

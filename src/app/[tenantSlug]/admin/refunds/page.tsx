@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter } , useParams } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,6 +65,8 @@ interface Order {
 }
 
 export default function AdminRefundsPage() {
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
   const { data: session, status } = useSession();
   const router = useRouter();
   const [refunds, setRefunds] = useState<Refund[]>([]);
@@ -336,7 +338,7 @@ export default function AdminRefundsPage() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
-        <AdminNavigation />
+        <AdminNavigation tenantSlug={tenantSlug} />
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">

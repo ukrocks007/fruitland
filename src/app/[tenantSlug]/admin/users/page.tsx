@@ -52,6 +52,8 @@ interface CustomerNote {
 }
 
 export default function AdminUsersPage() {
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -211,7 +213,7 @@ export default function AdminUsersPage() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        <AdminNavigation />
+        <AdminNavigation tenantSlug={tenantSlug} />
 
         <Card>
           <CardHeader>

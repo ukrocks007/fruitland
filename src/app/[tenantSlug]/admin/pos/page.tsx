@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter } , useParams } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -70,6 +70,8 @@ interface OrderResult {
 }
 
 export default function AdminPOSPage() {
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -285,7 +287,7 @@ export default function AdminPOSPage() {
       <Navbar />
       
       <div className="container mx-auto px-4 py-4">
-        <AdminNavigation />
+        <AdminNavigation tenantSlug={tenantSlug} />
         
         {/* Header */}
         <div className="flex items-center justify-between mb-4">

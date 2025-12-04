@@ -28,6 +28,8 @@ interface AnalyticsData {
 }
 
 export default function AdvancedAnalyticsPage() {
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
   const [data, setData] = useState<AnalyticsData>({
     summary: null,
     clv: null,
@@ -82,7 +84,7 @@ export default function AdvancedAnalyticsPage() {
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
-        <AdminNavigation />
+        <AdminNavigation tenantSlug={tenantSlug} />
         
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>

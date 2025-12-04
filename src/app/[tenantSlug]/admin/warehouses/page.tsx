@@ -55,6 +55,8 @@ interface WarehouseFormData {
 }
 
 export default function AdminWarehousesPage() {
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [filteredWarehouses, setFilteredWarehouses] = useState<WarehouseData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -256,7 +258,7 @@ export default function AdminWarehousesPage() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        <AdminNavigation />
+        <AdminNavigation tenantSlug={tenantSlug} />
 
         <Card>
           <CardHeader>

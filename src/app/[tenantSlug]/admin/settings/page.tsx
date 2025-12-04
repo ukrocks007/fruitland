@@ -24,6 +24,8 @@ interface LoyaltySettings {
 }
 
 export default function AdminSettingsPage() {
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingLoyalty, setSavingLoyalty] = useState(false);
@@ -190,7 +192,7 @@ export default function AdminSettingsPage() {
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
-        <AdminNavigation />
+        <AdminNavigation tenantSlug={tenantSlug} />
 
         <div className="max-w-4xl space-y-6">
           {/* Payment Settings */}

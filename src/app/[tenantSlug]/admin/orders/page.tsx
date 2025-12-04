@@ -314,7 +314,7 @@ export default function TenantAdminOrdersPage() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        <AdminNavigation />
+        <AdminNavigation tenantSlug={tenantSlug} />
 
         <h2 className="text-2xl font-semibold mb-2">Order Management</h2>
         <p className="text-gray-600 mb-6">Manage all customer orders</p>

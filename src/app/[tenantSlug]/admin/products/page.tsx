@@ -49,6 +49,8 @@ interface ProductFormData {
 }
 
 export default function AdminProductsPage() {
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -252,7 +254,7 @@ export default function AdminProductsPage() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        <AdminNavigation />
+        <AdminNavigation tenantSlug={tenantSlug} />
 
         <Card>
           <CardHeader>

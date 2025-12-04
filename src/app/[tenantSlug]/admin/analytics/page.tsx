@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+import { redirect } , useParams } from 'next/navigation';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -301,7 +301,7 @@ export default async function AdminAnalyticsPage() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        <AdminNavigation />
+        <AdminNavigation tenantSlug={tenantSlug} />
 
         <h2 className="text-2xl font-semibold mb-6">Business Growth Analytics</h2>
 
@@ -397,7 +397,7 @@ export default async function AdminAnalyticsPage() {
                     <div className="space-y-4">
                       {analytics.recentOrders.slice(0, 5).map((order: RecentOrder) => (
                         <Link
-                          href="/admin/orders"
+                          href={`/${tenantSlug}/admin/orders`}
                           key={order.id}
                           className="flex justify-between items-center border-b pb-2 hover:bg-gray-50 transition-colors cursor-pointer"
                         >
@@ -431,7 +431,7 @@ export default async function AdminAnalyticsPage() {
                         .filter((item: TopProduct) => item.product !== null)
                         .map((item: TopProduct) => (
                           <Link
-                            href="/admin/products"
+                            href={`/${tenantSlug}/admin/products`}
                             key={item.product!.id}
                             className="flex justify-between items-center border-b pb-2 hover:bg-gray-50 transition-colors cursor-pointer"
                           >
