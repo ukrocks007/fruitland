@@ -124,7 +124,7 @@ export default function TenantSubscriptionsPage() {
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <Navbar tenantSlug={tenantSlug} />
         <div className="container mx-auto px-4 py-8 flex justify-center items-center">
           <Loader2 className="h-8 w-8 animate-spin text-green-600" />
         </div>
@@ -134,7 +134,7 @@ export default function TenantSubscriptionsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar tenantSlug={tenantSlug} />
       
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Subscriptions</h1>
