@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { BulkOrderStatus } from '@/types';
+import { getTenantBySlug } from '@/lib/tenant';
 
 interface BulkOrderItem {
   productId: string;
@@ -19,7 +20,7 @@ interface CreateBulkOrderBody {
 }
 
 // GET - List bulk orders for the current user
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -27,9 +28,32 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get user's tenantId
+    if (!session.user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
+    // Optionally validate tenant from query param
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug');
+    
+    if (tenantSlug) {
+      const tenant = await getTenantBySlug(tenantSlug);
+      if (!tenant || tenant.id !== session.user.tenantId) {
+        return NextResponse.json(
+          { error: 'Invalid tenant' },
+          { status: 403 }
+        );
+      }
+    }
+
     const orders = await prisma.order.findMany({
       where: {
         userId: session.user.id,
+        tenantId: session.user.tenantId,
         isBulkOrder: true,
       },
       include: {
@@ -59,6 +83,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get user's tenantId
+    if (!session.user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
+    // Optionally validate tenant from query param
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug');
+    
+    if (tenantSlug) {
+      const tenant = await getTenantBySlug(tenantSlug);
+      if (!tenant || tenant.id !== session.user.tenantId) {
+        return NextResponse.json(
+          { error: 'Invalid tenant' },
+          { status: 403 }
+        );
+      }
+    }
+
     const body: CreateBulkOrderBody = await request.json();
     const { items, addressId, bulkCustomerName, bulkCustomerContact, bulkCustomerGST, bulkOrderNote } = body;
 
@@ -73,7 +119,10 @@ export async function POST(request: NextRequest) {
     // Fetch product details
     const productIds = items.map((item) => item.productId);
     const products = await prisma.product.findMany({
-      where: { id: { in: productIds } },
+      where: { 
+        id: { in: productIds },
+        tenantId: session.user.tenantId,
+      },
     });
 
     if (products.length !== items.length) {
@@ -131,6 +180,7 @@ export async function POST(request: NextRequest) {
     const order = await prisma.order.create({
       data: {
         userId: session.user.id,
+        tenantId: session.user.tenantId,
         addressId,
         orderNumber,
         totalAmount,

@@ -34,6 +34,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get user's tenantId
+    if (!session.user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const { name, description, frequency, price, imageUrl, features, isActive } = body;
 
@@ -46,6 +54,7 @@ export async function POST(request: NextRequest) {
 
     const subscriptionPackage = await prisma.subscriptionPackage.create({
       data: {
+        tenantId: session.user.tenantId,
         name,
         description: description || null,
         frequency,

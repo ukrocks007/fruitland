@@ -22,6 +22,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get user's tenantId
+    if (!session.user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const { items, addressId, subscriptionId, paymentMethod = 'ONLINE', redeemPoints = 0 } = body;
 
@@ -37,6 +45,7 @@ export async function POST(request: NextRequest) {
     const products = await prisma.product.findMany({
       where: {
         id: { in: productIds },
+        tenantId: session.user.tenantId,
       },
     });
 
@@ -152,6 +161,7 @@ export async function POST(request: NextRequest) {
       const order = await prisma.order.create({
         data: {
           userId: session.user.id,
+          tenantId: session.user.tenantId,
           addressId,
           orderNumber,
           totalAmount: finalAmount,

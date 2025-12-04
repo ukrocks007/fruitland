@@ -4,23 +4,83 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log('🌱 Seeding database with multi-tenant data...');
 
-  // Create admin user
+  // Create default tenants
+  const fruitlandTenant = await prisma.tenant.upsert({
+    where: { slug: 'fruitland' },
+    update: {},
+    create: {
+      name: 'Fruitland',
+      slug: 'fruitland',
+      description: 'Premium fresh fruits delivered to your doorstep',
+      contactEmail: 'support@fruitland.com',
+      contactPhone: '+91-9876543210',
+      isActive: true,
+    },
+  });
+  console.log('✅ Default tenant created:', fruitlandTenant.slug);
+
+  const organicTenant = await prisma.tenant.upsert({
+    where: { slug: 'organic-market' },
+    update: {},
+    create: {
+      name: 'Organic Market',
+      slug: 'organic-market',
+      description: ' 100% organic fruits and vegetables',
+      contactEmail: 'hello@organicmarket.com',
+      contactPhone: '+91-9876543211',
+      isActive: true,
+    },
+  });
+  console.log('✅ Demo tenant created:', organicTenant.slug);
+
+  // Create SUPERADMIN user (no tenantId)
+  const superadminPassword = await bcrypt.hash('superadmin123', 10);
+  const superadmin = await prisma.user.upsert({
+    where: { email: 'superadmin@fruitland.com' },
+    update: {},
+    create: {
+      email: 'superadmin@fruitland.com',
+      name: 'Super Admin',
+      password: superadminPassword,
+      role: 'SUPERADMIN',
+      tenantId: null,
+    },
+  });
+  console.log('✅ SUPERADMIN user created:', superadmin.email);
+
+  // Create tenant admin for Fruitland
   const adminPassword = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@fruitland.com' },
     update: {},
     create: {
       email: 'admin@fruitland.com',
-      name: 'Admin User',
+      name: 'Fruitland Admin',
       password: adminPassword,
       role: 'ADMIN',
+      tenantId: fruitlandTenant.id,
     },
   });
-  console.log('✅ Admin user created:', admin.email);
+  console.log('✅ Fruitland admin created:', admin.email);
 
-  // Create test customer
+  // Create tenant admin for Organic Market
+  const organicAdminPassword = await bcrypt.hash('admin123', 10);
+  const organicAdmin = await prisma.user.upsert({
+    where: { email: 'admin@organicmarket.com' },
+    update: {},
+    create: {
+      email: 'admin@organicmarket.com',
+      name: 'Organic Market Admin',
+      password: organicAdminPassword,
+      role: 'ADMIN',
+      tenantId: organicTenant.id,
+    },
+  });
+  console.log('✅ Organic Market admin created:', organicAdmin.email);
+
+  // Create test customer for Fruitland
   const customerPassword = await bcrypt.hash('customer123', 10);
   const customer = await prisma.user.upsert({
     where: { email: 'customer@example.com' },
@@ -30,12 +90,28 @@ async function main() {
       name: 'Test Customer',
       password: customerPassword,
       role: 'CUSTOMER',
+      tenantId: fruitlandTenant.id,
     },
   });
-  console.log('✅ Customer user created:', customer.email);
+  console.log('✅ Fruitland customer created:', customer.email);
 
-  // Create sample products
-  const products = [
+  // Create test customer for Organic Market
+  const organicCustomerPassword = await bcrypt.hash('customer123', 10);
+  const organicCustomer = await prisma.user.upsert({
+    where: { email: 'customer@organicmarket.com' },
+    update: {},
+    create: {
+      email: 'customer@organicmarket.com',
+      name: 'Organic Customer',
+      password: organicCustomerPassword,
+      role: 'CUSTOMER',
+      tenantId: organicTenant.id,
+    },
+  });
+  console.log('✅ Organic Market customer created:', organicCustomer.email);
+
+  // Create sample products for Fruitland
+  const fruitlandProducts = [
     {
       name: 'Fresh Apples',
       description: 'Crisp and juicy red apples, perfect for snacking',
@@ -45,6 +121,7 @@ async function main() {
       stock: 100,
       isAvailable: true,
       isSeasonal: false,
+      tenantId: fruitlandTenant.id,
     },
     {
       name: 'Organic Bananas',
@@ -55,6 +132,7 @@ async function main() {
       stock: 150,
       isAvailable: true,
       isSeasonal: false,
+      tenantId: fruitlandTenant.id,
     },
     {
       name: 'Seasonal Strawberries',
@@ -65,6 +143,7 @@ async function main() {
       stock: 50,
       isAvailable: true,
       isSeasonal: true,
+      tenantId: fruitlandTenant.id,
     },
     {
       name: 'Exotic Mango',
@@ -75,6 +154,7 @@ async function main() {
       stock: 30,
       isAvailable: true,
       isSeasonal: true,
+      tenantId: fruitlandTenant.id,
     },
     {
       name: 'Fresh Oranges',
@@ -85,6 +165,22 @@ async function main() {
       stock: 200,
       isAvailable: true,
       isSeasonal: false,
+      tenantId: fruitlandTenant.id,
+    },
+  ];
+
+  // Create sample products for Organic Market
+  const organicProducts = [
+    {
+      name: 'Organic Apples',
+      description: '100% certified organic apples',
+      price: 200,
+      image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400',
+      category: 'organic',
+      stock: 80,
+      isAvailable: true,
+      isSeasonal: false,
+      tenantId: organicTenant.id,
     },
     {
       name: 'Organic Avocado',
@@ -95,32 +191,29 @@ async function main() {
       stock: 80,
       isAvailable: true,
       isSeasonal: false,
+      tenantId: organicTenant.id,
     },
     {
       name: 'Dragon Fruit',
-      description: 'Exotic dragon fruit with unique flavor',
+      description: 'Exotic organic dragon fruit',
       price: 350,
       image: 'https://images.unsplash.com/photo-1527325678964-54921661f888?w=400',
       category: 'exotic',
       stock: 25,
       isAvailable: true,
       isSeasonal: false,
-    },
-    {
-      name: 'Watermelon',
-      description: 'Sweet and refreshing watermelon',
-      price: 80,
-      image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400',
-      category: 'seasonal',
-      stock: 60,
-      isAvailable: true,
-      isSeasonal: true,
+      tenantId: organicTenant.id,
     },
   ];
 
-  for (const product of products) {
+  const allProducts = [...fruitlandProducts, ...organicProducts];
+  
+  for (const product of allProducts) {
     const existing = await prisma.product.findFirst({
-      where: { name: product.name },
+      where: { 
+        name: product.name,
+        tenantId: product.tenantId,
+      },
     });
     
     if (!existing) {
@@ -129,18 +222,52 @@ async function main() {
       });
     }
   }
-  console.log(`✅ Created ${products.length} products`);
+  console.log(`✅ Created ${allProducts.length} products across tenants`);
 
-  // Get all products for creating sample orders
-  const allProducts = await prisma.product.findMany();
-  
-  // Create a sample address for the customer
-  const customerAddress = await prisma.address.upsert({
-    where: { id: 'sample-address-1' },
+  // Create warehouses for Fruitland
+  const fruitlandWarehouse = await prisma.warehouse.upsert({
+    where: { id: 'warehouse-fruitland-1' },
     update: {},
     create: {
-      id: 'sample-address-1',
+      id: 'warehouse-fruitland-1',
+      tenantId: fruitlandTenant.id,
+      name: 'Fruitland Main Warehouse',
+      city: 'Mumbai',
+      pincode: '400001',
+      zone: 'West',
+      contactName: 'Warehouse Manager',
+      contactPhone: '9876543210',
+      isActive: true,
+    },
+  });
+  console.log('✅ Fruitland warehouse created');
+
+  // Create warehouse for Organic Market
+  const organicWarehouse = await prisma.warehouse.upsert({
+    where: { id: 'warehouse-organic-1' },
+    update: {},
+    create: {
+      id: 'warehouse-organic-1',
+      tenantId: organicTenant.id,
+      name: 'Organic Market Central',
+      city: 'Pune',
+      pincode: '411001',
+      zone: 'West',
+      contactName: 'Warehouse Head',
+      contactPhone: '9876543212',
+      isActive: true,
+    },
+  });
+  console.log('✅ Organic Market warehouse created');
+
+  // Create a sample address for Fruitland customer
+  const customerAddress = await prisma.address.upsert({
+    where: { id: 'sample-address-fruitland-1' },
+    update: {},
+    create: {
+      id: 'sample-address-fruitland-1',
       userId: customer.id,
+      tenantId: fruitlandTenant.id,
       name: 'Test Customer',
       phone: '9876543210',
       addressLine1: '123 Main Street',
@@ -150,71 +277,38 @@ async function main() {
       isDefault: true,
     },
   });
-  console.log('✅ Created sample address');
+  console.log('✅ Created sample addresses');
 
-  // Create sample orders to generate recommendation data
-  const sampleOrders = [
-    // Order 1: Apples, Bananas, Oranges (frequently bought together)
-    {
-      products: ['Fresh Apples', 'Organic Bananas', 'Fresh Oranges'],
+  // Create subscription packages for Fruitland
+  const fruitlandPackage = await prisma.subscriptionPackage.upsert({
+    where: { id: 'package-fruitland-1' },
+    update: {},
+    create: {
+      id: 'package-fruitland-1',
+      tenantId: fruitlandTenant.id,
+      name: 'Weekly Fresh Box',
+      description: 'Fresh fruits delivered weekly',
+      frequency: 'WEEKLY',
+      price: 500,
+      features: JSON.stringify(['5kg mixed fruits', 'Free delivery', 'Cancel anytime']),
+      isActive: true,
     },
-    // Order 2: Apples, Bananas, Strawberries
-    {
-      products: ['Fresh Apples', 'Organic Bananas', 'Seasonal Strawberries'],
-    },
-    // Order 3: Mango, Dragon Fruit, Watermelon (exotic/seasonal)
-    {
-      products: ['Exotic Mango', 'Dragon Fruit', 'Watermelon'],
-    },
-    // Order 4: Avocado, Bananas, Apples
-    {
-      products: ['Organic Avocado', 'Organic Bananas', 'Fresh Apples'],
-    },
-    // Order 5: Apples, Oranges (repeat order)
-    {
-      products: ['Fresh Apples', 'Fresh Oranges'],
-    },
-  ];
+  });
+  console.log('✅ Subscription packages created');
 
-  let orderCount = 0;
-  for (const orderData of sampleOrders) {
-    const orderProducts = allProducts.filter(p => orderData.products.includes(p.name));
-    if (orderProducts.length === 0) continue;
-
-    const totalAmount = orderProducts.reduce((sum, p) => sum + p.price, 0);
-    const orderNumber = `ORD-${Date.now()}-${orderCount}`;
-
-    const existingOrder = await prisma.order.findFirst({
-      where: { orderNumber },
-    });
-
-    if (!existingOrder) {
-      await prisma.order.create({
-        data: {
-          userId: customer.id,
-          addressId: customerAddress.id,
-          orderNumber,
-          totalAmount,
-          status: 'DELIVERED',
-          paymentStatus: 'PAID',
-          items: {
-            create: orderProducts.map(p => ({
-              productId: p.id,
-              quantity: 1,
-              price: p.price,
-            })),
-          },
-        },
-      });
-      orderCount++;
-    }
-  }
-  console.log(`✅ Created ${orderCount} sample orders for recommendations`);
-
-  console.log('🎉 Seeding completed!');
+  console.log('\n🎉 Multi-tenant seeding completed!');
   console.log('\n📝 Test Credentials:');
-  console.log('Admin: admin@fruitland.com / admin123');
-  console.log('Customer: customer@example.com / customer123');
+  console.log('SUPERADMIN: superadmin@fruitland.com / superadmin123');
+  console.log('\nFruitland Tenant (slug: fruitland):');
+  console.log('  Admin: admin@fruitland.com / admin123');
+  console.log('  Customer: customer@example.com / customer123');
+  console.log('\nOrganic Market Tenant (slug: organic-market):');
+  console.log('  Admin: admin@organicmarket.com / admin123');
+  console.log('  Customer: customer@organicmarket.com / customer123');
+  console.log('\n📍 URLs:');
+  console.log('  Superadmin: http://localhost:3000/superadmin');
+  console.log('  Fruitland: http://localhost:3000/fruitland');
+  console.log('  Organic Market: http://localhost:3000/organic-market');
 }
 
 main()

@@ -1,10 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getTenantBySlug } from '@/lib/tenant';
 
 // GET /api/cart - Get user's cart items
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -19,8 +20,33 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Get user's tenantId
+    if (!user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
+    // Optionally validate tenant from query param
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug');
+    
+    if (tenantSlug) {
+      const tenant = await getTenantBySlug(tenantSlug);
+      if (!tenant || tenant.id !== user.tenantId) {
+        return NextResponse.json(
+          { error: 'Invalid tenant' },
+          { status: 403 }
+        );
+      }
+    }
+
     const cartItems = await prisma.cartItem.findMany({
-      where: { userId: user.id },
+      where: { 
+        userId: user.id,
+        tenantId: user.tenantId,
+      },
       include: {
         product: true,
       },
@@ -50,6 +76,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Get user's tenantId
+    if (!user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
     const { productId, quantity } = await request.json();
 
     if (!productId || quantity < 1) {
@@ -57,8 +91,11 @@ export async function POST(request: Request) {
     }
 
     // Check product exists and has stock
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
+    const product = await prisma.product.findFirst({
+      where: { 
+        id: productId,
+        tenantId: user.tenantId,
+      },
     });
 
     if (!product) {
@@ -68,9 +105,10 @@ export async function POST(request: Request) {
     // Check if item already exists in cart
     const existingItem = await prisma.cartItem.findUnique({
       where: {
-        userId_productId: {
+        userId_productId_tenantId: {
           userId: user.id,
           productId,
+          tenantId: user.tenantId,
         },
       },
     });
@@ -99,6 +137,7 @@ export async function POST(request: Request) {
       cartItem = await prisma.cartItem.create({
         data: {
           userId: user.id,
+          tenantId: user.tenantId,
           productId,
           quantity,
         },
@@ -129,8 +168,19 @@ export async function DELETE() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Get user's tenantId
+    if (!user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
     await prisma.cartItem.deleteMany({
-      where: { userId: user.id },
+      where: { 
+        userId: user.id,
+        tenantId: user.tenantId,
+      },
     });
 
     return NextResponse.json({ message: 'Cart cleared' });

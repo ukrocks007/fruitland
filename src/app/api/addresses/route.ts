@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { getTenantBySlug } from '@/lib/tenant';
 
 // GET user addresses
 export async function GET(request: NextRequest) {
@@ -15,8 +16,33 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get user's tenantId
+    if (!session.user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
+    // Optionally validate tenant from query param
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug');
+    
+    if (tenantSlug) {
+      const tenant = await getTenantBySlug(tenantSlug);
+      if (!tenant || tenant.id !== session.user.tenantId) {
+        return NextResponse.json(
+          { error: 'Invalid tenant' },
+          { status: 403 }
+        );
+      }
+    }
+
     const addresses = await prisma.address.findMany({
-      where: { userId: session.user.id },
+      where: { 
+        userId: session.user.id,
+        tenantId: session.user.tenantId,
+      },
       orderBy: [
         { isDefault: 'desc' },
         { createdAt: 'desc' },
@@ -45,6 +71,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get user's tenantId
+    if (!session.user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const { name, phone, addressLine1, addressLine2, city, state, pincode, isDefault } = body;
 
@@ -60,6 +94,7 @@ export async function POST(request: NextRequest) {
       await prisma.address.updateMany({
         where: {
           userId: session.user.id,
+          tenantId: session.user.tenantId,
           isDefault: true,
         },
         data: {
@@ -71,6 +106,7 @@ export async function POST(request: NextRequest) {
     const address = await prisma.address.create({
       data: {
         userId: session.user.id,
+        tenantId: session.user.tenantId,
         name,
         phone,
         addressLine1,

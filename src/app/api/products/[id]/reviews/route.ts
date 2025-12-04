@@ -133,6 +133,14 @@ export async function POST(
       );
     }
 
+    // Get user's tenantId
+    if (!session.user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
     const { id: productId } = await params;
     const body = await request.json();
     const { rating, title, comment } = body;
@@ -167,8 +175,11 @@ export async function POST(
     }
 
     // Verify product exists
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
+    const product = await prisma.product.findFirst({
+      where: { 
+        id: productId,
+        tenantId: session.user.tenantId,
+      },
     });
 
     if (!product) {
@@ -181,9 +192,10 @@ export async function POST(
     // Check if user has already reviewed this product
     const existingReview = await prisma.review.findUnique({
       where: {
-        productId_userId: {
+        productId_userId_tenantId: {
           productId,
           userId: session.user.id,
+          tenantId: session.user.tenantId,
         },
       },
     });
@@ -199,6 +211,7 @@ export async function POST(
     const hasPurchased = await prisma.order.findFirst({
       where: {
         userId: session.user.id,
+        tenantId: session.user.tenantId,
         status: OrderStatus.DELIVERED,
         paymentStatus: PaymentStatus.PAID,
         items: {
@@ -214,6 +227,7 @@ export async function POST(
       data: {
         productId,
         userId: session.user.id,
+        tenantId: session.user.tenantId,
         rating,
         title: title?.trim() || null,
         comment: comment.trim(),

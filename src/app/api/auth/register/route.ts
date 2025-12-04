@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { getTenantBySlug } from '@/lib/tenant';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, password } = body;
+    const { name, email, password, tenantSlug } = body;
 
     if (!email || !password) {
       return NextResponse.json(
@@ -29,6 +30,15 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // If tenantSlug is provided, get tenant and assign user to it
+    let tenantId: string | null = null;
+    if (tenantSlug) {
+      const tenant = await getTenantBySlug(tenantSlug);
+      if (tenant && tenant.isActive) {
+        tenantId = tenant.id;
+      }
+    }
+
     // Create user
     const user = await prisma.user.create({
       data: {
@@ -36,12 +46,14 @@ export async function POST(request: NextRequest) {
         email,
         password: hashedPassword,
         role: 'CUSTOMER',
+        tenantId, // Assign tenant if available
       },
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
+        tenantId: true,
       },
     });
 
