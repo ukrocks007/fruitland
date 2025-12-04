@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Role } from '@/types';
+import { getTenantBySlug } from '@/lib/tenant';
 
 // GET orders - user's own orders or all orders (admin)
 export async function GET(request: NextRequest) {
@@ -18,11 +19,42 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    const tenantSlug = searchParams.get('tenantSlug');
 
     const where: any = {};
 
+    // Get user's tenantId for regular users
+    if (!session.user.tenantId && session.user.role !== Role.SUPERADMIN) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
+    // Validate tenant if tenantSlug is provided
+    if (tenantSlug) {
+      const tenant = await getTenantBySlug(tenantSlug);
+      if (!tenant) {
+        return NextResponse.json(
+          { error: 'Tenant not found' },
+          { status: 404 }
+        );
+      }
+      // For non-SUPERADMIN users, validate they belong to the tenant
+      if (session.user.role !== Role.SUPERADMIN && tenant.id !== session.user.tenantId) {
+        return NextResponse.json(
+          { error: 'Invalid tenant' },
+          { status: 403 }
+        );
+      }
+      where.tenantId = tenant.id;
+    } else if (session.user.tenantId) {
+      // Default to user's tenant if no tenantSlug provided
+      where.tenantId = session.user.tenantId;
+    }
+
     // If not admin, only show user's own orders
-    if (session.user.role !== Role.ADMIN) {
+    if (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN) {
       where.userId = session.user.id;
     }
 

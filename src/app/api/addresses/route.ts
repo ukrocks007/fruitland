@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { getTenantBySlug } from '@/lib/tenant';
 
 // GET user addresses
 export async function GET(request: NextRequest) {
@@ -21,6 +22,20 @@ export async function GET(request: NextRequest) {
         { error: 'User is not associated with a tenant' },
         { status: 400 }
       );
+    }
+
+    // Optionally validate tenant from query param
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug');
+    
+    if (tenantSlug) {
+      const tenant = await getTenantBySlug(tenantSlug);
+      if (!tenant || tenant.id !== session.user.tenantId) {
+        return NextResponse.json(
+          { error: 'Invalid tenant' },
+          { status: 403 }
+        );
+      }
     }
 
     const addresses = await prisma.address.findMany({

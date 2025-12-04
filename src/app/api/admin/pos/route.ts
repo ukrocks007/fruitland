@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@/types';
+import { getTenantBySlug, validateTenantAccess } from '@/lib/tenant';
 
 interface POSOrderItem {
   productId: string;
@@ -14,18 +15,38 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    // Get user's tenantId
-    if (!session.user.tenantId) {
+    // Get tenantSlug from query params
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug');
+
+    if (!tenantSlug) {
       return NextResponse.json(
-        { error: 'User is not associated with a tenant' },
+        { error: 'Tenant slug is required' },
         { status: 400 }
+      );
+    }
+
+    // Get tenant by slug
+    const tenant = await getTenantBySlug(tenantSlug);
+    if (!tenant) {
+      return NextResponse.json(
+        { error: 'Tenant not found' },
+        { status: 404 }
+      );
+    }
+
+    // Validate tenant access
+    if (!validateTenantAccess(session.user.role, session.user.tenantId, tenant.id)) {
+      return NextResponse.json(
+        { error: 'Access denied to this tenant' },
+        { status: 403 }
       );
     }
 
@@ -51,7 +72,7 @@ export async function POST(request: NextRequest) {
     const products = await prisma.product.findMany({
       where: {
         id: { in: productIds },
-        tenantId: session.user.tenantId,
+        tenantId: tenant.id,
         isAvailable: true,
       },
     });
@@ -100,7 +121,7 @@ export async function POST(request: NextRequest) {
     let posAddress = await prisma.address.findFirst({
       where: {
         userId: session.user.id,
-        tenantId: session.user.tenantId,
+        tenantId: tenant.id,
         name: 'In-Store POS',
       },
     });
@@ -109,7 +130,7 @@ export async function POST(request: NextRequest) {
       posAddress = await prisma.address.create({
         data: {
           userId: session.user.id,
-          tenantId: session.user.tenantId,
+          tenantId: tenant.id,
           name: 'In-Store POS',
           phone: '0000000000',
           addressLine1: 'In-Store Purchase',
@@ -125,7 +146,7 @@ export async function POST(request: NextRequest) {
     const order = await prisma.order.create({
       data: {
         userId: session.user.id,
-        tenantId: session.user.tenantId,
+        tenantId: tenant.id,
         addressId: posAddress.id,
         orderNumber,
         totalAmount,
