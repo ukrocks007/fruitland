@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Save, Star } from 'lucide-react';
+import { useParams } from 'next/navigation';
 
 interface ConfigItem {
   key: string;

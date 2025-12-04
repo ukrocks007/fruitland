@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CLVSummary, CohortAnalysis, AdvancedAnalyticsSummary, RFMSummary } from '@/types/analytics';
+import { useParams } from 'next/navigation';
 
 interface AnalyticsData {
   summary: AdvancedAnalyticsSummary | null;

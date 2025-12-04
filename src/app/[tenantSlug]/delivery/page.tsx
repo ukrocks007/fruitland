@@ -213,7 +213,8 @@ export default function TenantDeliveryDashboardPage() {
       PENDING: 'bg-yellow-100 text-yellow-800',
       PAID: 'bg-green-100 text-green-800',
       FAILED: 'bg-red-100 text-red-800',
-      REFUNDED: 'bg-gray-100 text-gray-800';
+      REFUNDED: 'bg-gray-100 text-gray-800',
+    }
     return colors[paymentStat] || 'bg-gray-100 text-gray-800';
   };
 

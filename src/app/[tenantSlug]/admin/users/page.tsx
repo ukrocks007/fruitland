@@ -32,6 +32,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Loader2, Search, Trash2, MessageSquare } from 'lucide-react';
+import { useParams } from 'next/navigation';
 
 interface User {
   id: string;

@@ -1,4 +1,4 @@
-import { redirect } , useParams } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -287,7 +287,12 @@ async function getAnalytics() {
   }
 }
 
-export default async function AdminAnalyticsPage() {
+export default async function AdminAnalyticsPage({
+  params,
+}: {
+  params: { tenantSlug: string };
+}) {
+  const { tenantSlug } = params;
   const session = await getServerSession(authOptions);
 
   if (!session || session.user.role !== Role.ADMIN) {

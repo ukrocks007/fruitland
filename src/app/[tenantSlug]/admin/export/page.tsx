@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } , useParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Search, Trash2, Edit2, Plus } from 'lucide-react';
+import { useParams } from 'next/navigation';
 
 interface Product {
   id: string;

@@ -32,6 +32,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Search, Plus, ArrowRightLeft, Package } from 'lucide-react';
+import { useParams } from 'next/navigation';
 
 interface Warehouse {
   id: string;

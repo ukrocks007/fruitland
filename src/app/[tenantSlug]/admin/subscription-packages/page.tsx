@@ -26,6 +26,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Loader2, Plus, Edit2, Trash2 } from 'lucide-react';
+import { useParams } from 'next/navigation';
 
 interface SubscriptionPackage {
   id: string;
