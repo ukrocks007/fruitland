@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import SuperadminLogout from '@/components/SuperadminLogout';
 import { Building2, Users, Package, ShoppingCart } from 'lucide-react';
 
 export default async function SuperAdminDashboard() {
@@ -38,8 +39,11 @@ export default async function SuperAdminDashboard() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">Superadmin Dashboard</h1>
-            <div className="text-sm text-gray-600">
-              Logged in as: {session.user.email}
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-gray-600">
+                Logged in as: {session.user.email}
+              </div>
+              <SuperadminLogout />
             </div>
           </div>
         </div>
