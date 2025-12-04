@@ -92,14 +92,14 @@ export default function TenantBulkOrderPage() {
   const loadData = async () => {
     try {
       // Load products
-      const productsRes = await fetch('/api/products?available=true');
+      const productsRes = await fetch(`/api/products?available=true&tenantSlug=${tenantSlug}`);
       if (productsRes.ok) {
         const data = await productsRes.json();
         setProducts(data.products || []);
       }
 
       // Load addresses
-      const addressRes = await fetch('/api/addresses');
+      const addressRes = await fetch(`/api/addresses?tenantSlug=${tenantSlug}`);
       if (addressRes.ok) {
         const addressData = await addressRes.json();
         setAddresses(addressData);
@@ -122,7 +122,7 @@ export default function TenantBulkOrderPage() {
     e.preventDefault();
     setSavingAddress(true);
     try {
-      const res = await fetch('/api/addresses', {
+      const res = await fetch(`/api/addresses?tenantSlug=${tenantSlug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newAddress),
@@ -211,7 +211,7 @@ export default function TenantBulkOrderPage() {
     setSubmitting(true);
 
     try {
-      const res = await fetch('/api/bulk-orders', {
+      const res = await fetch(`/api/bulk-orders?tenantSlug=${tenantSlug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -233,7 +233,7 @@ export default function TenantBulkOrderPage() {
       }
 
       toast.success('Bulk order placed successfully! Our team will contact you shortly.');
-      router.push('/orders');
+      router.push(`/${tenantSlug}/orders`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to place order';
       toast.error(message);
