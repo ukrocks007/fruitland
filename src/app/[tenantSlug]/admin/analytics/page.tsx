@@ -292,7 +292,7 @@ export default async function AdminAnalyticsPage({
 }: {
   params: { tenantSlug: string };
 }) {
-  const { tenantSlug } = params;
+  const { tenantSlug } = await params;
   const session = await getServerSession(authOptions);
 
   if (!session || session.user.role !== Role.ADMIN) {
