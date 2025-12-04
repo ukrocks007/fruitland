@@ -41,7 +41,12 @@ export async function GET(request: NextRequest) {
             tenantId = session.user.tenantId;
         }
 
-        const where: any = tenantId ? { tenantId } : {};
+        // Build per-model filters respecting schema relations
+        const orderWhere: any = tenantId ? { tenantId } : {};
+        const reviewWhere: any = tenantId ? { tenantId } : {};
+        const productWhere: any = tenantId ? { tenantId } : {};
+        // Refunds do not have tenantId directly; filter via related order
+        const refundWhere: any = tenantId ? { order: { tenantId } } : {};
 
         const [
             pendingOrders,
@@ -52,33 +57,33 @@ export async function GET(request: NextRequest) {
         ] = await Promise.all([
             prisma.order.count({
                 where: {
-                    ...where,
+                    ...orderWhere,
                     status: 'PENDING',
                     isBulkOrder: false,
                 },
             }),
             prisma.order.count({
                 where: {
-                    ...where,
+                    ...orderWhere,
                     isBulkOrder: true,
                     bulkOrderStatus: 'PENDING_APPROVAL',
                 },
             }),
             prisma.refund.count({
                 where: {
-                    ...where,
+                    ...refundWhere,
                     status: 'REQUESTED',
                 },
             }),
             prisma.review.count({
                 where: {
-                    ...where,
+                    ...reviewWhere,
                     status: 'PENDING',
                 },
             }),
             prisma.product.count({
                 where: {
-                    ...where,
+                    ...productWhere,
                     stock: {
                         lt: 10,
                     },

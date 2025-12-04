@@ -4,8 +4,7 @@ import { notFound } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import ProductsGridClient from '@/components/ProductsGridClient';
 
 interface PageProps {
   params: Promise<{ tenantSlug: string }>;
@@ -102,52 +101,7 @@ export default async function ProductsPage({ params, searchParams }: PageProps) 
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <Link key={product.id} href={`/${tenantSlug}/products/${product.id}`}>
-                <Card className="border-none shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group h-full flex flex-col cursor-pointer">
-                  <div className="h-48 bg-white flex items-center justify-center relative overflow-hidden">
-                    <Badge className="absolute top-4 left-4 bg-white/90 text-gray-900 hover:bg-white shadow-sm backdrop-blur-sm z-10 capitalize">
-                      {product.category}
-                    </Badge>
-                    {product.image ? (
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                    ) : (
-                      <span className="text-8xl filter drop-shadow-lg group-hover:scale-110 transition-transform duration-300">
-                        🍎
-                      </span>
-                    )}
-                  </div>
-                  <CardContent className="p-5 flex-grow">
-                    <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-green-700 transition-colors">
-                      {product.name}
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                      {product.description}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold text-green-700">
-                        ₹{product.price}
-                      </span>
-                      {product.stock > 0 ? (
-                        <Badge variant="outline" className="text-green-700 border-green-700">
-                          In Stock
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-red-700 border-red-700">
-                          Out of Stock
-                        </Badge>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+          <ProductsGridClient products={products} tenantSlug={tenantSlug} />
         )}
       </div>
     </div>

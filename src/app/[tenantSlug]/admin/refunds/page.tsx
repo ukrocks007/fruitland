@@ -114,7 +114,7 @@ export default function AdminRefundsPage() {
 
   const fetchRefunds = async () => {
     try {
-      const res = await fetch('/api/admin/refunds');
+      const res = await fetch(`/api/admin/refunds?tenantSlug=${tenantSlug}`);
       if (res.ok) {
         const data = await res.json();
         setRefunds(data);
@@ -130,7 +130,7 @@ export default function AdminRefundsPage() {
   const fetchOrders = async () => {
     setLoadingOrders(true);
     try {
-      const res = await fetch('/api/admin/orders');
+      const res = await fetch(`/api/admin/orders?tenantSlug=${tenantSlug}`);
       if (res.ok) {
         const data = await res.json();
         // Filter to only show PAID orders that can be refunded
@@ -193,7 +193,7 @@ export default function AdminRefundsPage() {
 
     setProcessing(true);
     try {
-      const res = await fetch('/api/admin/refunds/request', {
+      const res = await fetch(`/api/admin/refunds/request?tenantSlug=${tenantSlug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -226,7 +226,7 @@ export default function AdminRefundsPage() {
 
     setProcessing(true);
     try {
-      const res = await fetch('/api/admin/refunds/approve', {
+      const res = await fetch(`/api/admin/refunds/approve?tenantSlug=${tenantSlug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -263,7 +263,7 @@ export default function AdminRefundsPage() {
 
     setProcessing(true);
     try {
-      const res = await fetch('/api/admin/refunds/approve', {
+      const res = await fetch(`/api/admin/refunds/approve?tenantSlug=${tenantSlug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

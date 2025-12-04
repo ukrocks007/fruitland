@@ -10,6 +10,10 @@ import { Minus, Plus, ShoppingCart, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { Product } from '@prisma/client';
 import Link from 'next/link';
+import { ReviewList } from '@/components/review-list';
+import { ReviewForm } from '@/components/review-form';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { MessageSquare } from 'lucide-react';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -21,6 +25,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -224,6 +229,36 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Reviews Section */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Customer Reviews</h2>
+          <Button variant="outline" onClick={() => setIsReviewDialogOpen(true)} className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Write a Review
+          </Button>
+        </div>
+        <ReviewList productId={product.id} />
+      </div>
+
+      {/* Write Review Modal */}
+      <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Write a Review</DialogTitle>
+          </DialogHeader>
+          <ReviewForm
+            productId={product.id}
+            productName={product.name}
+            onSuccess={() => {
+              setIsReviewDialogOpen(false);
+              router.refresh?.();
+            }}
+            onCancel={() => setIsReviewDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

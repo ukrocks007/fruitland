@@ -123,7 +123,7 @@ export default function AdminBulkOrdersPage() {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch('/api/admin/bulk-orders');
+      const res = await fetch(`/api/admin/bulk-orders?tenantSlug=${tenantSlug}`);
       if (res.ok) {
         const data = await res.json();
         setOrders(data);
@@ -225,7 +225,7 @@ export default function AdminBulkOrdersPage() {
   const fetchInvoiceData = async (orderId: string) => {
     setLoadingInvoice(true);
     try {
-      const res = await fetch(`/api/admin/bulk-orders/${orderId}?format=invoice`);
+      const res = await fetch(`/api/admin/bulk-orders/${orderId}?format=invoice&tenantSlug=${tenantSlug}`);
       if (res.ok) {
         const data = await res.json();
         setInvoiceData(data);
