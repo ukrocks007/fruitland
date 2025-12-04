@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@/types';
+import { getTenantBySlug } from '@/lib/tenant';
 
 export async function PATCH(
   request: NextRequest,
@@ -11,12 +12,21 @@ export async function PATCH(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
     const body = await request.json();
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug') || request.headers.get('x-tenant-slug') || undefined;
+    let scopeTenantId: string | undefined = undefined;
+    if (session.user.role === Role.ADMIN) {
+      scopeTenantId = session.user.tenantId ?? undefined;
+    } else if (session.user.role === Role.SUPERADMIN && tenantSlug) {
+      const tenant = await getTenantBySlug(tenantSlug);
+      scopeTenantId = tenant?.id;
+    }
     const { role } = body;
 
     if (!role || !['CUSTOMER', 'ADMIN', 'DELIVERY_PARTNER'].includes(role)) {
@@ -24,7 +34,7 @@ export async function PATCH(
     }
 
     const user = await prisma.user.update({
-      where: { id },
+      where: scopeTenantId ? { id, tenantId: scopeTenantId } : { id },
       data: { role },
     });
 
@@ -45,13 +55,23 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug') || request.headers.get('x-tenant-slug') || undefined;
+    let scopeTenantId: string | undefined = undefined;
+    if (session.user.role === Role.ADMIN) {
+      scopeTenantId = session.user.tenantId ?? undefined;
+    } else if (session.user.role === Role.SUPERADMIN && tenantSlug) {
+      const tenant = await getTenantBySlug(tenantSlug);
+      scopeTenantId = tenant?.id;
+    }
+
     await prisma.user.delete({
-      where: { id },
+      where: scopeTenantId ? { id, tenantId: scopeTenantId } : { id },
     });
 
     return NextResponse.json({ success: true });

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@/types';
+import { getTenantBySlug } from '@/lib/tenant';
 
 export async function GET(
   request: NextRequest,
@@ -11,13 +12,22 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
     const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug') || request.headers.get('x-tenant-slug') || undefined;
+    let scopeTenantId: string | undefined = undefined;
+    if (session.user.role === Role.ADMIN) {
+      scopeTenantId = session.user.tenantId ?? undefined;
+    } else if (session.user.role === Role.SUPERADMIN && tenantSlug) {
+      const tenant = await getTenantBySlug(tenantSlug);
+      scopeTenantId = tenant?.id;
+    }
+
     const notes = await prisma.customerNote.findMany({
-      where: { userId: id },
+      where: scopeTenantId ? { userId: id, user: { tenantId: scopeTenantId } } : { userId: id },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -38,16 +48,32 @@ export async function POST(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
     const { id } = await params;
     const body = await request.json();
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug') || request.headers.get('x-tenant-slug') || undefined;
+    let scopeTenantId: string | undefined = undefined;
+    if (session.user.role === Role.ADMIN) {
+      scopeTenantId = session.user.tenantId ?? undefined;
+    } else if (session.user.role === Role.SUPERADMIN && tenantSlug) {
+      const tenant = await getTenantBySlug(tenantSlug);
+      scopeTenantId = tenant?.id;
+    }
     const { note } = body;
 
     if (!note) {
       return NextResponse.json({ error: 'Note is required' }, { status: 400 });
+    }
+
+    // Optional guard: ensure target user is within scope
+    if (scopeTenantId) {
+      const target = await prisma.user.findFirst({ where: { id, tenantId: scopeTenantId } });
+      if (!target) {
+        return NextResponse.json({ error: 'User not in tenant scope' }, { status: 403 });
+      }
     }
 
     const customerNote = await prisma.customerNote.create({
