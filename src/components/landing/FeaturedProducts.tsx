@@ -1,50 +1,97 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Star, Plus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Product } from '@prisma/client';
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { useEffect, useState } from 'react';
+import ProductCard from '@/components/ProductCard';
 
 interface FeaturedProductsProps {
     products: Product[];
     tenantSlug?: string;
 }
 
+interface CartItem {
+    id: string;
+    productId: string;
+    quantity: number;
+}
+
 export function FeaturedProducts({ products, tenantSlug }: FeaturedProductsProps) {
-    const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
+    const [cartMap, setCartMap] = useState<Map<string, CartItem>>(new Map());
+    const [loadingCart, setLoadingCart] = useState(true);
     const baseUrl = tenantSlug ? `/${tenantSlug}` : '';
 
-    const addToCart = async (product: Product) => {
-        setAddingToCart(prev => ({ ...prev, [product.id]: true }));
-        try {
+    useEffect(() => {
+        let cancelled = false;
+        async function loadCart() {
+            setLoadingCart(true);
+            try {
+                const url = tenantSlug ? `/api/cart?tenantSlug=${tenantSlug}` : '/api/cart';
+                const res = await fetch(url);
+                if (res.ok) {
+                    const items = await res.json();
+                    const map = new Map<string, CartItem>();
+                    items.forEach((it: any) => {
+                        map.set(it.productId, { id: it.id, productId: it.productId, quantity: it.quantity });
+                    });
+                    if (!cancelled) setCartMap(map);
+                }
+            } finally {
+                if (!cancelled) setLoadingCart(false);
+            }
+        }
+        loadCart();
+        return () => {
+            cancelled = true;
+        };
+    }, [tenantSlug]);
+
+    const setQuantity = async (productId: string, nextQty: number) => {
+        const current = cartMap.get(productId);
+        if (!current) {
             const url = tenantSlug ? `/api/cart?tenantSlug=${tenantSlug}` : '/api/cart';
             const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    productId: product.id,
-                    quantity: 1,
-                }),
+                body: JSON.stringify({ productId, quantity: nextQty }),
             });
-
-            if (!res.ok) {
-                const error = await res.json();
-                toast.error(error.error || 'Failed to add to cart');
-                return;
+            if (res.ok) {
+                const item = await res.json();
+                const newMap = new Map(cartMap);
+                newMap.set(productId, { id: item.id, productId, quantity: item.quantity });
+                setCartMap(newMap);
+                window.dispatchEvent(new Event('cartUpdated'));
             }
-
+            return;
+        }
+        const res = await fetch(`/api/cart/${current.id}?tenantSlug=${tenantSlug ?? ''}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'x-tenant-slug': tenantSlug ?? '' },
+            body: JSON.stringify({ quantity: nextQty }),
+        });
+        if (res.ok) {
+            const item = await res.json();
+            const newMap = new Map(cartMap);
+            newMap.set(productId, { id: item.id, productId, quantity: item.quantity });
+            setCartMap(newMap);
             window.dispatchEvent(new Event('cartUpdated'));
-            toast.success(`${product.name} added to cart!`);
-        } catch (error) {
-            console.error('Error adding to cart:', error);
-            toast.error('Failed to add item to cart');
-        } finally {
-            setAddingToCart(prev => ({ ...prev, [product.id]: false }));
+        }
+    };
+
+    const removeItem = async (productId: string) => {
+        const current = cartMap.get(productId);
+        if (!current) return;
+        const res = await fetch(`/api/cart/${current.id}?tenantSlug=${tenantSlug ?? ''}`, {
+            method: 'DELETE',
+            headers: { 'x-tenant-slug': tenantSlug ?? '' },
+        });
+        if (res.ok) {
+            const newMap = new Map(cartMap);
+            newMap.delete(productId);
+            setCartMap(newMap);
+            window.dispatchEvent(new Event('cartUpdated'));
         }
     };
 
@@ -68,57 +115,31 @@ export function FeaturedProducts({ products, tenantSlug }: FeaturedProductsProps
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {products.map((product, index) => (
-                        <motion.div
-                            key={product.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            viewport={{ once: true }}
-                        >
-                            <Card className="border-none shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group h-full flex flex-col">
-                                <div className={`h-48 bg-white flex items-center justify-center relative overflow-hidden`}>
-                                    <Badge className="absolute top-4 left-4 bg-white/90 text-gray-900 hover:bg-white shadow-sm backdrop-blur-sm z-10">
-                                        {product.isSeasonal ? 'Seasonal' : 'Fresh'}
-                                    </Badge>
-                                    {product.image ? (
-                                        <img
-                                            src={product.image}
-                                            alt={product.name}
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                        />
-                                    ) : (
-                                        <span className="text-8xl filter drop-shadow-lg group-hover:scale-110 transition-transform duration-300">
-                                            🍎
-                                        </span>
-                                    )}
-                                </div>
-                                <CardContent className="p-5 flex-grow">
-                                    <div className="flex items-center gap-1 text-yellow-500 text-sm mb-2">
-                                        <Star className="w-4 h-4 fill-current" />
-                                        <span className="font-medium text-gray-900">4.8</span>
-                                        <span className="text-gray-400">(120)</span>
-                                    </div>
-                                    <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1">{product.name}</h3>
-                                    <p className="text-gray-500 text-sm mb-4">₹{product.price}</p>
-                                </CardContent>
-                                <CardFooter className="p-5 pt-0 mt-auto">
-                                    <Button
-                                        className="w-full bg-white text-green-700 border-2 border-green-100 hover:bg-green-50 hover:border-green-200 shadow-none font-semibold"
-                                        onClick={() => addToCart(product)}
-                                        disabled={addingToCart[product.id]}
-                                    >
-                                        {addingToCart[product.id] ? (
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        ) : (
-                                            <Plus className="w-4 h-4 mr-2" />
-                                        )}
-                                        Add to Cart
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        </motion.div>
-                    ))}
+                    {products.map((product, index) => {
+                        const ci = cartMap.get(product.id);
+                        return (
+                            <motion.div
+                                key={product.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                viewport={{ once: true }}
+                            >
+                                <ProductCard
+                                    product={product}
+                                    tenantSlug={tenantSlug || ''}
+                                    initialQuantity={ci?.quantity || 0}
+                                    onIncrease={() => setQuantity(product.id, (ci?.quantity || 0) + 1)}
+                                    onDecrease={() => {
+                                        const q = (ci?.quantity || 0) - 1;
+                                        if (q <= 0) removeItem(product.id);
+                                        else setQuantity(product.id, q);
+                                    }}
+                                    onAdd={() => setQuantity(product.id, 1)}
+                                />
+                            </motion.div>
+                        );
+                    })}
                 </div>
             </div>
         </section>

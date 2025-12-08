@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { getTenantBySlug } from '@/lib/tenant';
+import { getTenantBySlug, ensureCustomerMembership } from '@/lib/tenant';
 
 // GET /api/cart - Get user's cart items
 export async function GET(request: NextRequest) {
@@ -20,33 +20,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get user's tenantId
-    if (!user.tenantId) {
-      return NextResponse.json(
-        { error: 'User is not associated with a tenant' },
-        { status: 400 }
-      );
-    }
-
-    // Optionally validate tenant from query param
+    // Resolve tenant from query/header
     const { searchParams } = new URL(request.url);
-    const tenantSlug = searchParams.get('tenantSlug');
-    
-    if (tenantSlug) {
-      const tenant = await getTenantBySlug(tenantSlug);
-      if (!tenant || tenant.id !== user.tenantId) {
-        return NextResponse.json(
-          { error: 'Invalid tenant' },
-          { status: 403 }
-        );
-      }
+    const tenantSlug = searchParams.get('tenantSlug') || request.headers.get('x-tenant-slug');
+    if (!tenantSlug) {
+      return NextResponse.json({ error: 'tenantSlug is required' }, { status: 400 });
     }
+    const tenant = await getTenantBySlug(tenantSlug);
+    if (!tenant) {
+      return NextResponse.json({ error: 'Invalid tenant' }, { status: 404 });
+    }
+    // Ensure membership for customer role
+    await ensureCustomerMembership(user.id, tenant.id, user.role);
 
     const cartItems = await prisma.cartItem.findMany({
-      where: { 
-        userId: user.id,
-        tenantId: user.tenantId,
-      },
+      where: { userId: user.id, tenantId: tenant.id },
       include: {
         product: true,
       },
@@ -76,13 +64,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get user's tenantId
-    if (!user.tenantId) {
-      return NextResponse.json(
-        { error: 'User is not associated with a tenant' },
-        { status: 400 }
-      );
+    // Resolve tenant from query/header
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug') || (request as any).headers?.get?.('x-tenant-slug');
+    if (!tenantSlug) {
+      return NextResponse.json({ error: 'tenantSlug is required' }, { status: 400 });
     }
+    const tenant = await getTenantBySlug(tenantSlug);
+    if (!tenant) {
+      return NextResponse.json({ error: 'Invalid tenant' }, { status: 404 });
+    }
+    await ensureCustomerMembership(user.id, tenant.id, user.role);
 
     const { productId, quantity } = await request.json();
 
@@ -94,7 +86,7 @@ export async function POST(request: Request) {
     const product = await prisma.product.findFirst({
       where: { 
         id: productId,
-        tenantId: user.tenantId,
+        tenantId: tenant.id,
       },
     });
 
@@ -108,7 +100,7 @@ export async function POST(request: Request) {
         userId_productId_tenantId: {
           userId: user.id,
           productId,
-          tenantId: user.tenantId,
+          tenantId: tenant.id,
         },
       },
     });
@@ -137,7 +129,7 @@ export async function POST(request: Request) {
       cartItem = await prisma.cartItem.create({
         data: {
           userId: user.id,
-          tenantId: user.tenantId,
+          tenantId: tenant.id,
           productId,
           quantity,
         },
@@ -153,7 +145,7 @@ export async function POST(request: Request) {
 }
 
 // DELETE /api/cart - Clear entire cart
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -168,19 +160,20 @@ export async function DELETE() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get user's tenantId
-    if (!user.tenantId) {
-      return NextResponse.json(
-        { error: 'User is not associated with a tenant' },
-        { status: 400 }
-      );
+    // Resolve tenant from query/header
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug') || request.headers.get('x-tenant-slug');
+    if (!tenantSlug) {
+      return NextResponse.json({ error: 'tenantSlug is required' }, { status: 400 });
     }
+    const tenant = await getTenantBySlug(tenantSlug);
+    if (!tenant) {
+      return NextResponse.json({ error: 'Invalid tenant' }, { status: 404 });
+    }
+    await ensureCustomerMembership(user.id, tenant.id, user.role);
 
     await prisma.cartItem.deleteMany({
-      where: { 
-        userId: user.id,
-        tenantId: user.tenantId,
-      },
+      where: { userId: user.id, tenantId: tenant.id },
     });
 
     return NextResponse.json({ message: 'Cart cleared' });

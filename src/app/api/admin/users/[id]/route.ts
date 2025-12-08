@@ -33,8 +33,27 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
 
+    // Ensure membership exists if scoping by tenant
+    if (scopeTenantId) {
+      const inScope = await prisma.user.findFirst({
+        where: {
+          id,
+          OR: [
+            { addresses: { some: { tenantId: scopeTenantId } } },
+            { orders: { some: { tenantId: scopeTenantId } } },
+            { subscriptions: { some: { tenantId: scopeTenantId } } },
+            { cartItems: { some: { tenantId: scopeTenantId } } },
+            { reviews: { some: { tenantId: scopeTenantId } } },
+          ],
+        },
+      });
+      if (!inScope) {
+        return NextResponse.json({ error: 'User not in tenant scope' }, { status: 403 });
+      }
+    }
+
     const user = await prisma.user.update({
-      where: scopeTenantId ? { id, tenantId: scopeTenantId } : { id },
+      where: { id },
       data: { role },
     });
 
@@ -70,9 +89,25 @@ export async function DELETE(
       scopeTenantId = tenant?.id;
     }
 
-    await prisma.user.delete({
-      where: scopeTenantId ? { id, tenantId: scopeTenantId } : { id },
-    });
+    if (scopeTenantId) {
+      const inScope = await prisma.user.findFirst({
+        where: {
+          id,
+          OR: [
+            { addresses: { some: { tenantId: scopeTenantId } } },
+            { orders: { some: { tenantId: scopeTenantId } } },
+            { subscriptions: { some: { tenantId: scopeTenantId } } },
+            { cartItems: { some: { tenantId: scopeTenantId } } },
+            { reviews: { some: { tenantId: scopeTenantId } } },
+          ],
+        },
+      });
+      if (!inScope) {
+        return NextResponse.json({ error: 'User not in tenant scope' }, { status: 403 });
+      }
+    }
+
+    await prisma.user.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
   } catch (error) {

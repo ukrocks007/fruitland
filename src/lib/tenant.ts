@@ -160,3 +160,23 @@ export function validateTenantAccess(
 export function getDefaultTenantSlug(): string {
   return process.env.DEFAULT_TENANT_SLUG || 'fruitland';
 }
+
+/**
+ * Ensure a CUSTOMER has a membership record for the given tenant.
+ * Safe no-op if the membership delegate is not available yet.
+ */
+export async function ensureCustomerMembership(userId: string, tenantId: string, role: string) {
+  try {
+    if (role !== 'CUSTOMER') return;
+    const client: any = prisma as any;
+    if (!client.userTenant) return;
+    await client.userTenant.upsert({
+      where: { userId_tenantId: { userId, tenantId } },
+      update: {},
+      create: { userId, tenantId, role: 'CUSTOMER' },
+    });
+  } catch (e) {
+    // Swallow to avoid breaking flows; log for diagnostics
+    console.warn('ensureCustomerMembership failed:', e);
+  }
+}

@@ -72,9 +72,9 @@ export default function ProductsGridClient({
       return;
     }
     // update existing via PATCH
-    const res = await fetch(`/api/cart/${current.id}`, {
+    const res = await fetch(`/api/cart/${current.id}?tenantSlug=${tenantSlug}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-tenant-slug": tenantSlug },
       body: JSON.stringify({ quantity: nextQty }),
     });
     if (res.ok) {
@@ -89,7 +89,10 @@ export default function ProductsGridClient({
   const removeItem = async (productId: string) => {
     const current = cartMap.get(productId);
     if (!current) return;
-    const res = await fetch(`/api/cart/${current.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/cart/${current.id}?tenantSlug=${tenantSlug}`, {
+      method: "DELETE",
+      headers: { "x-tenant-slug": tenantSlug },
+    });
     if (res.ok) {
       const newMap = new Map(cartMap);
       newMap.delete(productId);

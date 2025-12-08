@@ -41,7 +41,17 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      where: tenantId ? { tenantId } : undefined,
+      where: tenantId
+        ? {
+            OR: [
+              { addresses: { some: { tenantId } } },
+              { orders: { some: { tenantId } } },
+              { subscriptions: { some: { tenantId } } },
+              { cartItems: { some: { tenantId } } },
+              { reviews: { some: { tenantId } } },
+            ],
+          }
+        : undefined,
       orderBy: {
         createdAt: 'desc',
       },

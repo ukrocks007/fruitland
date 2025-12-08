@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Navbar } from '@/components/navbar';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ReviewList } from '@/components/review-list';
