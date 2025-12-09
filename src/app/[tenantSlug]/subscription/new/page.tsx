@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Loader2, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { addWeeks, addMonths, format } from 'date-fns';
+import { addWeeks, addMonths } from 'date-fns';
+import { useTenant } from '@/lib/useTenant';
 
 interface Address {
   id: string;
@@ -38,6 +39,9 @@ function NewSubscriptionContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
+  const { tenant } = useTenant();
+  const tenantSlug = params.tenantSlug as string || tenant?.slug || '';
   const packageId = searchParams.get('package');
 
   const [loading, setLoading] = useState(true);
@@ -71,7 +75,7 @@ function NewSubscriptionContent() {
       
       // Fetch package details if packageId is provided
       if (packageId) {
-        const packageRes = await fetch(`/api/subscription-packages`);
+        const packageRes = await fetch(`/api/subscription-packages?tenantSlug=${tenantSlug}`);
         if (packageRes.ok) {
           const data = await packageRes.json();
           const pkg = data.packages.find((p: SubscriptionPackage) => p.id === packageId);
@@ -82,7 +86,7 @@ function NewSubscriptionContent() {
       }
 
       // Fetch user addresses
-      const addressesRes = await fetch('/api/addresses');
+      const addressesRes = await fetch('/api/addresses?tenantSlug=' + tenantSlug);
       if (addressesRes.ok) {
         const data = await addressesRes.json();
         setAddresses(data?.addresses || data || []);
@@ -105,7 +109,7 @@ function NewSubscriptionContent() {
     e.preventDefault();
 
     try {
-      const response = await fetch('/api/addresses', {
+      const response = await fetch('/api/addresses?tenantSlug=' + tenantSlug, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(addressForm),
@@ -164,7 +168,7 @@ function NewSubscriptionContent() {
           break;
       }
 
-      const response = await fetch('/api/subscriptions', {
+      const response = await fetch('/api/subscriptions?tenantSlug=' + tenantSlug, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -236,7 +240,7 @@ function NewSubscriptionContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar tenantSlug={tenantSlug} />
       
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Create Subscription</h1>

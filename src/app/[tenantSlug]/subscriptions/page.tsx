@@ -211,7 +211,7 @@ export default function TenantSubscriptionsPage() {
                     )}
 
                     <Button className="w-full mt-auto" asChild>
-                      <Link href={`/subscription/new?package=${pkg.id}`}>
+                      <Link href={`/${tenantSlug}/subscription/new?package=${pkg.id}`}>
                         Subscribe Now
                       </Link>
                     </Button>

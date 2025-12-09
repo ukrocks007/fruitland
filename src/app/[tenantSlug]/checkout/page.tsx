@@ -721,6 +721,7 @@ export default function CheckoutPage() {
               title="Add before checkout"
               limit={4}
               onAddToCart={loadData}
+              tenantSlug={tenantSlug}
             />
           </div>
         </div>

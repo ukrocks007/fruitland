@@ -12,6 +12,7 @@ import { CartRecommendations } from '@/components/CartRecommendations';
 import { Minus, Plus, Trash2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import { useTenant } from '@/lib/useTenant';
 
 interface CartItem {
   id: string;
@@ -29,7 +30,8 @@ export default function TenantCartPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
-  const tenantSlug = params.tenantSlug as string;
+  const { tenant } = useTenant();
+  const tenantSlug = params.tenantSlug as string || tenant?.slug || '';
   
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +51,7 @@ export default function TenantCartPage() {
 
   const fetchCart = async () => {
     try {
-      const res = await fetch('/api/cart');
+      const res = await fetch(tenantSlug || tenantSlug ? `/api/cart?tenantSlug=${tenantSlug || tenantSlug}` : '/api/cart');
       if (res.ok) {
         const data = await res.json();
         setCartItems(data);
@@ -70,7 +72,7 @@ export default function TenantCartPage() {
 
     setUpdatingItems(prev => ({ ...prev, [id]: true }));
     try {
-      const res = await fetch(`/api/cart/${id}`, {
+      const res = await fetch(`/api/cart/${id}${tenantSlug ? `?tenantSlug=${tenantSlug}` : ''}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity: newQuantity }),
@@ -97,7 +99,7 @@ export default function TenantCartPage() {
   const removeItem = async (id: string) => {
     setUpdatingItems(prev => ({ ...prev, [id]: true }));
     try {
-      const res = await fetch(`/api/cart/${id}`, {
+      const res = await fetch(`/api/cart/${id}${tenantSlug ? `?tenantSlug=${tenantSlug}` : ''}`, {
         method: 'DELETE',
       });
 
@@ -119,7 +121,7 @@ export default function TenantCartPage() {
   const clearCart = async () => {
     setClearingCart(true);
     try {
-      const res = await fetch('/api/cart', {
+      const res = await fetch(tenantSlug ? `/api/cart?tenantSlug=${tenantSlug}` : '/api/cart', {
         method: 'DELETE',
       });
 
@@ -300,6 +302,7 @@ export default function TenantCartPage() {
                 title="Add to your order"
                 limit={4}
                 onAddToCart={fetchCart}
+                tenantSlug={tenantSlug}
               />
             </div>
           </div>
