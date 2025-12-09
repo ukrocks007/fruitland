@@ -73,8 +73,8 @@ export default function TenantSubscriptionsPage() {
     try {
       setLoading(true);
       const [packagesRes, subscriptionsRes] = await Promise.all([
-        fetch('/api/subscription-packages'),
-        fetch('/api/subscriptions'),
+        fetch('/api/subscription-packages?tenantSlug=' + tenantSlug),
+        fetch('/api/subscriptions?tenantSlug=' + tenantSlug),
       ]);
 
       if (packagesRes.ok) {
