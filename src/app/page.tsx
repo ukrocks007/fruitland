@@ -1,3 +1,5 @@
+"use client";
+
 import { Navbar } from '@/components/navbar';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';

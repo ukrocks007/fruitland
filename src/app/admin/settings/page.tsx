@@ -25,6 +25,8 @@ interface LoyaltySettings {
 }
 
 export default function AdminSettingsPage() {
+  const { tenant } = useTenant();
+  const tenantSlug = tenant?.slug || "";
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingLoyalty, setSavingLoyalty] = useState(false);

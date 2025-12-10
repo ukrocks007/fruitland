@@ -61,6 +61,8 @@ interface ProductStock {
 }
 
 export default function AdminInventoryWarehousePage() {
+  const { tenant } = useTenant();
+  const tenantSlug = tenant?.slug || "";
   const [productStocks, setProductStocks] = useState<ProductStock[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [products, setProducts] = useState<Product[]>([]);

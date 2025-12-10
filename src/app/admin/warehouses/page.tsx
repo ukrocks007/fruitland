@@ -56,6 +56,8 @@ interface WarehouseFormData {
 }
 
 export default function AdminWarehousesPage() {
+  const { tenant } = useTenant();
+  const tenantSlug = tenant?.slug || "";
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [filteredWarehouses, setFilteredWarehouses] = useState<WarehouseData[]>([]);
   const [loading, setLoading] = useState(true);

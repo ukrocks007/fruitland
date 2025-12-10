@@ -50,6 +50,8 @@ interface ProductFormData {
 }
 
 export default function AdminProductsPage() {
+  const { tenant } = useTenant();
+  const tenantSlug = tenant?.slug || "";
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
