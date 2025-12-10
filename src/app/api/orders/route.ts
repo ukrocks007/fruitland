@@ -23,14 +23,6 @@ export async function GET(request: NextRequest) {
 
     const where: any = {};
 
-    // Get user's tenantId for regular users
-    if (!session.user.tenantId && session.user.role !== Role.SUPERADMIN) {
-      return NextResponse.json(
-        { error: 'User is not associated with a tenant' },
-        { status: 400 }
-      );
-    }
-
     // Validate tenant if tenantSlug is provided
     if (tenantSlug) {
       const tenant = await getTenantBySlug(tenantSlug);
@@ -40,17 +32,35 @@ export async function GET(request: NextRequest) {
           { status: 404 }
         );
       }
-      // For non-SUPERADMIN users, validate they belong to the tenant
-      if (session.user.role !== Role.SUPERADMIN && tenant.id !== session.user.tenantId) {
+      
+      // For non-SUPERADMIN users, validate they belong to the tenant via UserTenant table
+      if (session.user.role !== Role.SUPERADMIN) {
+        const userTenant = await prisma.userTenant.findUnique({
+          where: {
+            userId_tenantId: {
+              userId: session.user.id,
+              tenantId: tenant.id,
+            },
+          },
+        });
+
+        if (!userTenant) {
+          return NextResponse.json(
+            { error: 'User is not associated with this tenant' },
+            { status: 403 }
+          );
+        }
+      }
+      
+      where.tenantId = tenant.id;
+    } else {
+      // If no tenantSlug provided and not SUPERADMIN, return error
+      if (session.user.role !== Role.SUPERADMIN) {
         return NextResponse.json(
-          { error: 'Invalid tenant' },
-          { status: 403 }
+          { error: 'tenantSlug is required' },
+          { status: 400 }
         );
       }
-      where.tenantId = tenant.id;
-    } else if (session.user.tenantId) {
-      // Default to user's tenant if no tenantSlug provided
-      where.tenantId = session.user.tenantId;
     }
 
     // If not admin, only show user's own orders

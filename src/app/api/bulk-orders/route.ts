@@ -28,32 +28,46 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's tenantId
-    if (!session.user.tenantId) {
+    // Get tenant slug from query param
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug');
+    
+    if (!tenantSlug) {
       return NextResponse.json(
-        { error: 'User is not associated with a tenant' },
+        { error: 'tenantSlug is required' },
         { status: 400 }
       );
     }
 
-    // Optionally validate tenant from query param
-    const { searchParams } = new URL(request.url);
-    const tenantSlug = searchParams.get('tenantSlug');
-    
-    if (tenantSlug) {
-      const tenant = await getTenantBySlug(tenantSlug);
-      if (!tenant || tenant.id !== session.user.tenantId) {
-        return NextResponse.json(
-          { error: 'Invalid tenant' },
-          { status: 403 }
-        );
-      }
+    const tenant = await getTenantBySlug(tenantSlug);
+    if (!tenant) {
+      return NextResponse.json(
+        { error: 'Invalid tenant' },
+        { status: 404 }
+      );
+    }
+
+    // Check if user is associated with this tenant via UserTenant table
+    const userTenant = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: session.user.id,
+          tenantId: tenant.id,
+        },
+      },
+    });
+
+    if (!userTenant) {
+      return NextResponse.json(
+        { error: 'User is not associated with this tenant' },
+        { status: 403 }
+      );
     }
 
     const orders = await prisma.order.findMany({
       where: {
         userId: session.user.id,
-        tenantId: session.user.tenantId,
+        tenantId: tenant.id,
         isBulkOrder: true,
       },
       include: {
@@ -83,26 +97,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's tenantId
-    if (!session.user.tenantId) {
+    // Get tenant slug from query param
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug');
+    
+    if (!tenantSlug) {
       return NextResponse.json(
-        { error: 'User is not associated with a tenant' },
+        { error: 'tenantSlug is required' },
         { status: 400 }
       );
     }
 
-    // Optionally validate tenant from query param
-    const { searchParams } = new URL(request.url);
-    const tenantSlug = searchParams.get('tenantSlug');
-    
-    if (tenantSlug) {
-      const tenant = await getTenantBySlug(tenantSlug);
-      if (!tenant || tenant.id !== session.user.tenantId) {
-        return NextResponse.json(
-          { error: 'Invalid tenant' },
-          { status: 403 }
-        );
-      }
+    const tenant = await getTenantBySlug(tenantSlug);
+    if (!tenant) {
+      return NextResponse.json(
+        { error: 'Invalid tenant' },
+        { status: 404 }
+      );
+    }
+
+    // Check if user is associated with this tenant via UserTenant table
+    const userTenant = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: session.user.id,
+          tenantId: tenant.id,
+        },
+      },
+    });
+
+    if (!userTenant) {
+      return NextResponse.json(
+        { error: 'User is not associated with this tenant' },
+        { status: 403 }
+      );
     }
 
     const body: CreateBulkOrderBody = await request.json();
@@ -119,9 +147,9 @@ export async function POST(request: NextRequest) {
     // Fetch product details
     const productIds = items.map((item) => item.productId);
     const products = await prisma.product.findMany({
-      where: { 
+      where: {
         id: { in: productIds },
-        tenantId: session.user.tenantId,
+        tenantId: tenant.id,
       },
     });
 
@@ -180,7 +208,7 @@ export async function POST(request: NextRequest) {
     const order = await prisma.order.create({
       data: {
         userId: session.user.id,
-        tenantId: session.user.tenantId,
+        tenantId: tenant.id,
         addressId,
         orderNumber,
         totalAmount,

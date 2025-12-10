@@ -28,8 +28,7 @@ export function FeaturedProducts({ products, tenantSlug }: FeaturedProductsProps
         async function loadCart() {
             setLoadingCart(true);
             try {
-                const url = tenantSlug ? `/api/cart?tenantSlug=${tenantSlug}` : '/api/cart';
-                const res = await fetch(url);
+                const res = await fetch(`/api/cart?tenantSlug=${tenantSlug ?? ''}`);
                 if (res.ok) {
                     const items = await res.json();
                     const map = new Map<string, CartItem>();
@@ -51,8 +50,7 @@ export function FeaturedProducts({ products, tenantSlug }: FeaturedProductsProps
     const setQuantity = async (productId: string, nextQty: number) => {
         const current = cartMap.get(productId);
         if (!current) {
-            const url = tenantSlug ? `/api/cart?tenantSlug=${tenantSlug}` : '/api/cart';
-            const res = await fetch(url, {
+            const res = await fetch(`/api/cart?tenantSlug=${tenantSlug ?? ''}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ productId, quantity: nextQty }),

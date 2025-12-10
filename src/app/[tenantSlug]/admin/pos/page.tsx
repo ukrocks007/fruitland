@@ -284,7 +284,7 @@ export default function AdminPOSPage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Navbar />
+      <Navbar tenantSlug={tenantSlug} />
       
       <div className="container mx-auto px-4 py-4">
         <AdminNavigation tenantSlug={tenantSlug} />

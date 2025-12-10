@@ -31,8 +31,7 @@ export function Navbar({ tenantSlug }: NavbarProps = {}) {
     const updateCartCount = async () => {
       if (status === 'authenticated') {
         try {
-          const url = tenantSlug ? `/api/cart?tenantSlug=${tenantSlug}` : '/api/cart';
-          const res = await fetch(url);
+          const res = await fetch(`/api/cart?tenantSlug=${tenantSlug ?? ''}`);
           if (res.ok) {
             const cart = await res.json();
             const count = cart.reduce((total: number, item: { quantity: number }) => total + item.quantity, 0);

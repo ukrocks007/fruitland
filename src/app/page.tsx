@@ -10,16 +10,19 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { getFeaturedProducts, getHeroProduct, getCategories } from '@/lib/products';
+import { useParams } from 'next/navigation';
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
   const featuredProducts = await getFeaturedProducts();
   const heroProduct = await getHeroProduct();
   const categories = await getCategories();
+  const params = useParams();
+  const tenantSlug = params?.tenantSlug as string || "";
 
   return (
     <div className="min-h-screen bg-white font-sans selection:bg-green-100 selection:text-green-900">
-      <Navbar />
+      <Navbar tenantSlug={tenantSlug} />
 
       <main>
         <Hero product={heroProduct} />

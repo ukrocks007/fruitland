@@ -212,7 +212,7 @@ function NewSubscriptionContent() {
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <Navbar tenantSlug={tenantSlug} />
         <div className="container mx-auto px-4 py-8 flex justify-center items-center">
           <Loader2 className="h-8 w-8 animate-spin text-green-600" />
         </div>
@@ -223,7 +223,7 @@ function NewSubscriptionContent() {
   if (!selectedPackage) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <Navbar tenantSlug={tenantSlug} />
         <div className="container mx-auto px-4 py-8">
           <Card>
             <CardContent className="py-16 text-center">
@@ -494,10 +494,13 @@ function NewSubscriptionContent() {
 }
 
 export default function NewSubscriptionPage() {
+  const params = useParams();
+  const tenantSlug = params.tenantSlug as string;
+  
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <Navbar tenantSlug={tenantSlug} />
         <div className="container mx-auto px-4 py-8 flex justify-center items-center">
           <Loader2 className="h-8 w-8 animate-spin text-green-600" />
         </div>

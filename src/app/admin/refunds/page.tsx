@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
+import { useTenant } from '@/lib/useTenant';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,6 +68,8 @@ interface Order {
 export default function AdminRefundsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { tenant } = useTenant();
+  const tenantSlug = tenant?.slug || '';
   const [refunds, setRefunds] = useState<Refund[]>([]);
   const [filteredRefunds, setFilteredRefunds] = useState<Refund[]>([]);
   const [loading, setLoading] = useState(true);
@@ -322,7 +325,7 @@ export default function AdminRefundsPage() {
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <Navbar tenantSlug={tenantSlug} />
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-green-600" />
@@ -334,7 +337,7 @@ export default function AdminRefundsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+<Navbar tenantSlug={tenantSlug} />
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />
 

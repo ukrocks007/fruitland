@@ -116,7 +116,7 @@ export default function ForecastingPage() {
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <Navbar tenantSlug={tenantSlug} />
         <div className="container mx-auto px-4 py-8">
           <AdminNavigation tenantSlug={tenantSlug} />
           <div className="flex items-center justify-center py-12">
@@ -129,7 +129,7 @@ export default function ForecastingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+     <Navbar tenantSlug={tenantSlug} />
 
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation tenantSlug={tenantSlug} />

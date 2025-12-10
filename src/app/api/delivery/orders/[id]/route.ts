@@ -29,6 +29,23 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid tenant' }, { status: 404 });
     }
 
+    // Check if delivery partner is associated with this tenant via UserTenant table
+    const userTenant = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: session.user.id,
+          tenantId: tenant.id,
+        },
+      },
+    });
+
+    if (!userTenant) {
+      return NextResponse.json(
+        { error: 'Delivery partner is not associated with this tenant' },
+        { status: 403 }
+      );
+    }
+
     const { id } = await params;
     const { status, paymentStatus, deliveryNotes } = await request.json();
 
@@ -152,6 +169,23 @@ export async function GET(
     const tenant = await getTenantBySlug(tenantSlug);
     if (!tenant) {
       return NextResponse.json({ error: 'Invalid tenant' }, { status: 404 });
+    }
+
+    // Check if delivery partner is associated with this tenant via UserTenant table
+    const userTenant = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: session.user.id,
+          tenantId: tenant.id,
+        },
+      },
+    });
+
+    if (!userTenant) {
+      return NextResponse.json(
+        { error: 'Delivery partner is not associated with this tenant' },
+        { status: 403 }
+      );
     }
 
     const { id } = await params;

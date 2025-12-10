@@ -243,7 +243,7 @@ export default function CheckoutPage() {
     setProcessing(true);
 
     try {
-      const orderRes = await fetch('/api/payment/create-order', {
+      const orderRes = await fetch(`/api/payment/create-order?tenantSlug=${encodeURIComponent(tenantSlug)}` , {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -291,7 +291,7 @@ export default function CheckoutPage() {
     setProcessing(true);
 
     try {
-      const orderRes = await fetch('/api/payment/create-order', {
+      const orderRes = await fetch(`/api/payment/create-order?tenantSlug=${encodeURIComponent(tenantSlug)}` , {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -322,7 +322,7 @@ export default function CheckoutPage() {
         order_id: orderData.id,
         handler: async function (response: RazorpayResponse) {
           try {
-            const verifyRes = await fetch('/api/payment/verify', {
+            const verifyRes = await fetch(`/api/payment/verify?tenantSlug=${encodeURIComponent(tenantSlug)}` , {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

@@ -51,7 +51,7 @@ export default function TenantCartPage() {
 
   const fetchCart = async () => {
     try {
-      const res = await fetch(tenantSlug || tenantSlug ? `/api/cart?tenantSlug=${tenantSlug || tenantSlug}` : '/api/cart');
+      const res = await fetch(`/api/cart?tenantSlug=${tenantSlug}`);
       if (res.ok) {
         const data = await res.json();
         setCartItems(data);
@@ -72,7 +72,7 @@ export default function TenantCartPage() {
 
     setUpdatingItems(prev => ({ ...prev, [id]: true }));
     try {
-      const res = await fetch(`/api/cart/${id}${tenantSlug ? `?tenantSlug=${tenantSlug}` : ''}`, {
+      const res = await fetch(`/api/cart/${id}?tenantSlug=${tenantSlug}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity: newQuantity }),
@@ -99,7 +99,7 @@ export default function TenantCartPage() {
   const removeItem = async (id: string) => {
     setUpdatingItems(prev => ({ ...prev, [id]: true }));
     try {
-      const res = await fetch(`/api/cart/${id}${tenantSlug ? `?tenantSlug=${tenantSlug}` : ''}`, {
+      const res = await fetch(`/api/cart/${id}?tenantSlug=${tenantSlug}`, {
         method: 'DELETE',
       });
 
@@ -121,7 +121,7 @@ export default function TenantCartPage() {
   const clearCart = async () => {
     setClearingCart(true);
     try {
-      const res = await fetch(tenantSlug ? `/api/cart?tenantSlug=${tenantSlug}` : '/api/cart', {
+      const res = await fetch(`/api/cart?tenantSlug=${tenantSlug}`, {
         method: 'DELETE',
       });
 

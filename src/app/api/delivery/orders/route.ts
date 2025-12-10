@@ -26,6 +26,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid tenant' }, { status: 404 });
     }
 
+    // Check if delivery partner is associated with this tenant via UserTenant table
+    const userTenant = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: session.user.id,
+          tenantId: tenant.id,
+        },
+      },
+    });
+
+    if (!userTenant) {
+      return NextResponse.json(
+        { error: 'Delivery partner is not associated with this tenant' },
+        { status: 403 }
+      );
+    }
+
     const orders = await prisma.order.findMany({
       where: {
         deliveryPartnerId: session.user.id,

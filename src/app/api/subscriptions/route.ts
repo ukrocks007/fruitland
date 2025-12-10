@@ -17,32 +17,46 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get user's tenantId
-    if (!session.user.tenantId) {
+    // Get tenant slug from query param
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug');
+    
+    if (!tenantSlug) {
       return NextResponse.json(
-        { error: 'User is not associated with a tenant' },
+        { error: 'tenantSlug is required' },
         { status: 400 }
       );
     }
 
-    // Optionally validate tenant from query param
-    const { searchParams } = new URL(request.url);
-    const tenantSlug = searchParams.get('tenantSlug');
-    
-    if (tenantSlug) {
-      const tenant = await getTenantBySlug(tenantSlug);
-      if (!tenant || tenant.id !== session.user.tenantId) {
-        return NextResponse.json(
-          { error: 'Invalid tenant' },
-          { status: 403 }
-        );
-      }
+    const tenant = await getTenantBySlug(tenantSlug);
+    if (!tenant) {
+      return NextResponse.json(
+        { error: 'Invalid tenant' },
+        { status: 404 }
+      );
+    }
+
+    // Check if user is associated with this tenant via UserTenant table
+    const userTenant = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: session.user.id,
+          tenantId: tenant.id,
+        },
+      },
+    });
+
+    if (!userTenant) {
+      return NextResponse.json(
+        { error: 'User is not associated with this tenant' },
+        { status: 403 }
+      );
     }
 
     const subscriptions = await prisma.subscription.findMany({
       where: { 
         userId: session.user.id,
-        tenantId: session.user.tenantId,
+        tenantId: tenant.id,
       },
       include: {
         items: {
@@ -79,11 +93,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user's tenantId
-    if (!session.user.tenantId) {
+    // Get tenant slug from query param or body
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug');
+    
+    if (!tenantSlug) {
       return NextResponse.json(
-        { error: 'User is not associated with a tenant' },
+        { error: 'tenantSlug is required' },
         { status: 400 }
+      );
+    }
+
+    const tenant = await getTenantBySlug(tenantSlug);
+    if (!tenant) {
+      return NextResponse.json(
+        { error: 'Invalid tenant' },
+        { status: 404 }
+      );
+    }
+
+    // Check if user is associated with this tenant via UserTenant table
+    const userTenant = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: session.user.id,
+          tenantId: tenant.id,
+        },
+      },
+    });
+
+    if (!userTenant) {
+      return NextResponse.json(
+        { error: 'User is not associated with this tenant' },
+        { status: 403 }
       );
     }
 
@@ -117,7 +159,7 @@ export async function POST(request: NextRequest) {
     const subscription = await prisma.subscription.create({
       data: {
         userId: session.user.id,
-        tenantId: session.user.tenantId,
+        tenantId: tenant.id,
         addressId,
         subscriptionNumber,
         frequency,

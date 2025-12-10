@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import { Tenant, TenantContextType } from '@/types';
 
 const TenantContext = createContext<TenantContextType>({
@@ -16,6 +16,8 @@ export function useTenant() {
 export function TenantProvider({ children }: { children: React.ReactNode }) {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const params = useParams();
+  const tenantSlug = params?.tenantSlug as string || "";
   const [error, setError] = useState<string>();
   const pathname = usePathname();
 
@@ -27,10 +29,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
         // Extract tenant slug from pathname
         const segments = pathname.split('/').filter(Boolean);
-        const tenantSlug = segments[0];
+        const extractedTenantSlug = segments[0];
 
         // Skip if no tenant slug or if it's an API route
-        if (!tenantSlug || pathname.startsWith('/api/')) {
+        if (!extractedTenantSlug || !tenantSlug || pathname.startsWith('/api/')) {
           setTenant(null);
           setIsLoading(false);
           return;
@@ -44,7 +46,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Fetch tenant data
-        const response = await fetch(`/api/tenants/${tenantSlug}`);
+        const response = await fetch(`/api/tenants/${tenantSlug || extractedTenantSlug}`);
         if (!response.ok) {
           throw new Error('Tenant not found');
         }

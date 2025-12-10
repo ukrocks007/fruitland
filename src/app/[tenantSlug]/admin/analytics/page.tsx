@@ -303,7 +303,7 @@ export default async function AdminAnalyticsPage({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar tenantSlug={tenantSlug} />
 
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation tenantSlug={tenantSlug} />
