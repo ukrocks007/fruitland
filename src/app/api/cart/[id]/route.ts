@@ -1,3 +1,4 @@
+import { getTenantBySlug, ensureCustomerMembership } from '@/lib/tenant';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -15,6 +16,15 @@ export async function PATCH(
     }
 
     const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug') || (request as any).headers?.get?.('x-tenant-slug');
+    if (!tenantSlug) {
+      return NextResponse.json({ error: 'tenantSlug is required' }, { status: 400 });
+    }
+    const tenant = await getTenantBySlug(tenantSlug);
+    if (!tenant) {
+      return NextResponse.json({ error: 'Invalid tenant' }, { status: 404 });
+    }
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
     });
@@ -24,6 +34,7 @@ export async function PATCH(
     }
 
     const { quantity } = await request.json();
+    await ensureCustomerMembership(user.id, tenant.id, user.role);
 
     if (quantity < 1) {
       return NextResponse.json({ error: 'Quantity must be at least 1' }, { status: 400 });
@@ -34,6 +45,7 @@ export async function PATCH(
       where: {
         id,
         userId: user.id,
+        tenantId: tenant.id,
       },
       include: { product: true },
     });
@@ -75,6 +87,15 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug') || (request as any).headers?.get?.('x-tenant-slug');
+    if (!tenantSlug) {
+      return NextResponse.json({ error: 'tenantSlug is required' }, { status: 400 });
+    }
+    const tenant = await getTenantBySlug(tenantSlug);
+    if (!tenant) {
+      return NextResponse.json({ error: 'Invalid tenant' }, { status: 404 });
+    }
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
     });
@@ -88,6 +109,7 @@ export async function DELETE(
       where: {
         id,
         userId: user.id,
+        tenantId: tenant.id,
       },
     });
 
@@ -95,9 +117,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Cart item not found' }, { status: 404 });
     }
 
-    await prisma.cartItem.delete({
-      where: { id },
-    });
+    await prisma.cartItem.delete({ where: { id } });
 
     return NextResponse.json({ message: 'Item removed from cart' });
   } catch (error) {

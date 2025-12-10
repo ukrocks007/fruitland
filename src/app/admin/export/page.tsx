@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
+import { useTenant } from '@/lib/useTenant';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,8 @@ import { toast } from 'sonner';
 import { Role } from '@/types';
 
 export default function AdminExportPage() {
+    const { tenant } = useTenant();
+    const tenantSlug = tenant?.slug || '';
   const { data: session, status } = useSession();
   const router = useRouter();
 
@@ -171,7 +174,7 @@ export default function AdminExportPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar tenantSlug={tenantSlug} />
 
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />

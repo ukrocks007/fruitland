@@ -10,6 +10,35 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Tenant model for multi-tenancy
+model Tenant {
+  id                String   @id @default(cuid())
+  name              String
+  slug              String   @unique
+  description       String?
+  logo              String?
+  contactEmail      String?
+  contactPhone      String?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  users                  User[]
+  memberships            UserTenant[]
+  products               Product[]
+  orders                 Order[]
+  subscriptions          Subscription[]
+  subscriptionPackages   SubscriptionPackage[]
+  addresses              Address[]
+  cartItems              CartItem[]
+  warehouses             Warehouse[]
+  loyaltyTransactions    LoyaltyTransaction[]
+  reviews                Review[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
 // User model for authentication
 model User {
   id            String    @id @default(cuid())
@@ -19,12 +48,15 @@ model User {
   image         String?
   password      String?
   phone         String?
-  role          String    @default("CUSTOMER") // CUSTOMER, ADMIN, or DELIVERY_PARTNER
+  role          String    @default("CUSTOMER") // CUSTOMER, ADMIN, DELIVERY_PARTNER, or SUPERADMIN
+  tenantId      String?   // Nullable for SUPERADMIN users
   pointsBalance Int       @default(0) // Loyalty points balance
   loyaltyTier   String    @default("BASIC") // BASIC, SILVER, GOLD
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  tenant           Tenant?  @relation(fields: [tenantId], references: [id])
+  memberships      UserTenant[]
   accounts         Account[]
   sessions         Session[]
   orders           Order[]
@@ -39,6 +71,22 @@ model User {
   reviews          Review[]
 
   @@index([role])
+  @@index([tenantId])
+}
+
+// Many-to-many membership between User and Tenant
+model UserTenant {
+  userId   String
+  tenantId String
+  role     String   @default("CUSTOMER")
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@id([userId, tenantId])
+  @@index([tenantId])
+  @@index([userId])
 }
 
 // NextAuth models
@@ -81,6 +129,7 @@ model VerificationToken {
 model Address {
   id         String   @id @default(cuid())
   userId     String
+  tenantId   String
   name       String
   phone      String
   addressLine1 String
@@ -93,13 +142,18 @@ model Address {
   updatedAt  DateTime @updatedAt
 
   user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant       Tenant         @relation(fields: [tenantId], references: [id])
   orders       Order[]
   subscriptions Subscription[]
+
+  @@index([tenantId])
+  @@index([userId, tenantId])
 }
 
 // Product model
 model Product {
   id          String   @id @default(cuid())
+  tenantId    String
   name        String
   description String
   price       Float
@@ -111,6 +165,7 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  tenant             Tenant              @relation(fields: [tenantId], references: [id])
   orderItems         OrderItem[]
   subscriptionItems  SubscriptionItem[]
   cartItems          CartItem[]
@@ -118,8 +173,9 @@ model Product {
   reviews            Review[]
   inventoryForecasts InventoryForecast[]
 
-  @@index([stock, isAvailable])
-  @@index([category])
+  @@index([tenantId])
+  @@index([tenantId, stock, isAvailable])
+  @@index([tenantId, category])
 }
 
 // Inventory Forecast model for demand prediction
@@ -142,6 +198,7 @@ model InventoryForecast {
 model Order {
   id                 String      @id @default(cuid())
   userId             String
+  tenantId           String
   addressId          String
   orderNumber        String      @unique
   totalAmount        Float
@@ -171,6 +228,7 @@ model Order {
   updatedAt          DateTime    @updatedAt
 
   user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant              Tenant        @relation(fields: [tenantId], references: [id])
   address             Address       @relation(fields: [addressId], references: [id])
   subscription        Subscription? @relation(fields: [subscriptionId], references: [id])
   deliveryPartner     User?         @relation("DeliveryPartner", fields: [deliveryPartnerId], references: [id])
@@ -179,9 +237,11 @@ model Order {
   loyaltyTransactions LoyaltyTransaction[]
   refunds             Refund[]
 
-  @@index([createdAt])
-  @@index([paymentStatus])
-  @@index([status])
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, paymentStatus])
+  @@index([tenantId, status])
+  @@index([tenantId, userId])
   @@index([createdAt, paymentStatus])
   @@index([deliveryPartnerId])
   @@index([isBulkOrder])
@@ -205,6 +265,7 @@ model OrderItem {
 // Subscription Package model - Admin defined packages
 model SubscriptionPackage {
   id          String   @id @default(cuid())
+  tenantId    String
   name        String
   description String?
   frequency   String // DAILY, WEEKLY, MONTHLY
@@ -215,13 +276,18 @@ model SubscriptionPackage {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
   subscriptions Subscription[]
+
+  @@index([tenantId])
+  @@index([tenantId, isActive])
 }
 
 // Subscription model
 model Subscription {
   id                String             @id @default(cuid())
   userId            String
+  tenantId          String
   addressId         String
   packageId         String?
   subscriptionNumber String           @unique
@@ -238,14 +304,16 @@ model Subscription {
   updatedAt         DateTime           @updatedAt
 
   user    User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant  Tenant                 @relation(fields: [tenantId], references: [id])
   address Address                @relation(fields: [addressId], references: [id])
   package SubscriptionPackage?   @relation(fields: [packageId], references: [id])
   items   SubscriptionItem[]
   orders  Order[]
   skips   SubscriptionSkip[]
 
-  @@index([status])
-  @@index([createdAt])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, userId])
   @@index([status, createdAt])
 }
 
@@ -273,15 +341,19 @@ model SubscriptionSkip {
 model CartItem {
   id        String   @id @default(cuid())
   userId    String
+  tenantId  String
   productId String
   quantity  Int      @default(1)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, productId])
+  @@unique([userId, productId, tenantId])
+  @@index([tenantId])
+  @@index([userId, tenantId])
 }
 
 // Config model for dynamic settings
@@ -326,6 +398,7 @@ model AnalyticsCache {
 // Warehouse model for multi-warehouse inventory
 model Warehouse {
   id            String   @id @default(cuid())
+  tenantId      String
   name          String
   city          String
   pincode       String
@@ -337,13 +410,15 @@ model Warehouse {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
   productStocks ProductStock[]
   orders        Order[]
 
-  @@index([city])
-  @@index([pincode])
-  @@index([zone])
-  @@index([isActive])
+  @@index([tenantId])
+  @@index([tenantId, city])
+  @@index([tenantId, pincode])
+  @@index([tenantId, zone])
+  @@index([tenantId, isActive])
 }
 
 // ProductStock model for tracking stock per warehouse
@@ -369,15 +444,19 @@ model ProductStock {
 model LoyaltyTransaction {
   id          String   @id @default(cuid())
   userId      String
+  tenantId    String
   orderId     String?
   type        String   // EARN or REDEEM
   points      Int      // Number of points (positive for earn, positive for redeem as it tracks absolute value)
   description String   // Description of transaction
   createdAt   DateTime @default(now())
 
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  order Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  order  Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
+  @@index([tenantId])
+  @@index([tenantId, userId])
   @@index([userId])
   @@index([createdAt])
   @@index([type])
@@ -415,6 +494,7 @@ model Review {
   id              String       @id @default(uuid())
   productId       String
   userId          String
+  tenantId        String
   rating          Int          // 1-5 stars
   title           String?
   comment         String
@@ -425,9 +505,11 @@ model Review {
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
 
-  @@unique([productId, userId]) // Prevent duplicate reviews
-  @@index([productId, status])
+  @@unique([productId, userId, tenantId]) // Prevent duplicate reviews per tenant
+  @@index([tenantId])
+  @@index([tenantId, productId, status])
   @@index([userId])
   @@index([status])
 }

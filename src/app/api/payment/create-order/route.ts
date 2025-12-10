@@ -5,6 +5,7 @@ import { createRazorpayOrder } from '@/lib/razorpay';
 import { prisma } from '@/lib/prisma';
 import { findWarehouseWithStock, allocateStock, confirmStockAllocation, releaseStock } from '@/lib/warehouse-stock';
 import { awardLoyaltyPoints, redeemLoyaltyPoints, getLoyaltySettings } from '@/lib/loyalty';
+import { getTenantBySlug } from '@/lib/tenant';
 
 interface OrderItem {
   productId: string;
@@ -19,6 +20,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    // Get tenantSlug from URL and validate against session
+    const tenantSlug = request.nextUrl.searchParams.get('tenantSlug') || request.headers.get('x-tenant-slug') || undefined;
+    if (!tenantSlug) {
+      return NextResponse.json(
+        { error: 'tenantSlug is required' },
+        { status: 400 }
+      );
+    }
+    const tenant = await getTenantBySlug(tenantSlug);
+    if (!tenant) {
+      return NextResponse.json(
+        { error: 'Invalid tenantSlug' },
+        { status: 404 }
+      );
+    }
+
+    // Check if user is associated with this tenant via UserTenant table
+    const userTenant = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: session.user.id,
+          tenantId: tenant.id,
+        },
+      },
+    });
+
+    if (!userTenant) {
+      return NextResponse.json(
+        { error: 'User-tenant mismatch or not associated with tenant' },
+        { status: 403 }
       );
     }
 
@@ -37,6 +71,7 @@ export async function POST(request: NextRequest) {
     const products = await prisma.product.findMany({
       where: {
         id: { in: productIds },
+        tenantId: tenant.id,
       },
     });
 
@@ -152,6 +187,7 @@ export async function POST(request: NextRequest) {
       const order = await prisma.order.create({
         data: {
           userId: session.user.id,
+          tenantId: tenant.id,
           addressId,
           orderNumber,
           totalAmount: finalAmount,

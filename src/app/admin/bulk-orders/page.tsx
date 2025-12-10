@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
+import { useTenant } from '@/lib/useTenant';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -87,6 +88,8 @@ interface InvoiceData {
 }
 
 export default function AdminBulkOrdersPage() {
+    const { tenant } = useTenant();
+    const tenantSlug = tenant?.slug || '';
   const { data: session, status } = useSession();
   const router = useRouter();
   const [orders, setOrders] = useState<BulkOrder[]>([]);
@@ -307,7 +310,7 @@ export default function AdminBulkOrdersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar tenantSlug={tenantSlug} />
 
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />

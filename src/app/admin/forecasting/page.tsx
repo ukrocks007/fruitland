@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
+import { useTenant } from '@/lib/useTenant';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,6 +52,8 @@ export default function ForecastingPage() {
   const [forecasts, setForecasts] = useState<ForecastData[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const { tenant } = useTenant();
+  const tenantSlug = tenant?.slug || '';
 
   const fetchForecasts = useCallback(async () => {
     try {
@@ -114,7 +117,7 @@ export default function ForecastingPage() {
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <Navbar tenantSlug={tenantSlug} />
         <div className="container mx-auto px-4 py-8">
           <AdminNavigation />
           <div className="flex items-center justify-center py-12">
@@ -127,7 +130,7 @@ export default function ForecastingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar tenantSlug={tenantSlug} />
 
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />

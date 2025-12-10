@@ -3,6 +3,7 @@ export const Role = {
   CUSTOMER: 'CUSTOMER',
   ADMIN: 'ADMIN',
   DELIVERY_PARTNER: 'DELIVERY_PARTNER',
+  SUPERADMIN: 'SUPERADMIN',
 } as const;
 
 export const OrderStatus = {
@@ -351,4 +352,24 @@ export interface ReviewStats {
   averageRating: number;
   totalReviews: number;
   ratingDistribution: Record<number, number>;
+}
+
+// Tenant Types
+export interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  logo?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  isActive: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface TenantContextType {
+  tenant: Tenant | null;
+  isLoading: boolean;
+  error?: string;
 }

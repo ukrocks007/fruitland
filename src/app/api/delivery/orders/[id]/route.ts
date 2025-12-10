@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role, OrderStatus, PaymentStatus } from '@/types';
+import { getTenantBySlug } from '@/lib/tenant';
 
 // PATCH - Update order status or payment status by delivery partner
 export async function PATCH(
@@ -16,14 +17,44 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get tenant slug from query params
+    const tenantSlug = request.nextUrl.searchParams.get('tenantSlug');
+    if (!tenantSlug) {
+      return NextResponse.json({ error: 'Tenant slug is required' }, { status: 400 });
+    }
+
+    // Validate tenant
+    const tenant = await getTenantBySlug(tenantSlug);
+    if (!tenant) {
+      return NextResponse.json({ error: 'Invalid tenant' }, { status: 404 });
+    }
+
+    // Check if delivery partner is associated with this tenant via UserTenant table
+    const userTenant = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: session.user.id,
+          tenantId: tenant.id,
+        },
+      },
+    });
+
+    if (!userTenant) {
+      return NextResponse.json(
+        { error: 'Delivery partner is not associated with this tenant' },
+        { status: 403 }
+      );
+    }
+
     const { id } = await params;
     const { status, paymentStatus, deliveryNotes } = await request.json();
 
-    // Verify this order is assigned to this delivery partner
+    // Verify this order is assigned to this delivery partner and belongs to the tenant
     const existingOrder = await prisma.order.findFirst({
       where: {
         id,
         deliveryPartnerId: session.user.id,
+        tenantId: tenant.id,
       },
     });
 
@@ -128,12 +159,42 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get tenant slug from query params
+    const tenantSlug = request.nextUrl.searchParams.get('tenantSlug');
+    if (!tenantSlug) {
+      return NextResponse.json({ error: 'Tenant slug is required' }, { status: 400 });
+    }
+
+    // Validate tenant
+    const tenant = await getTenantBySlug(tenantSlug);
+    if (!tenant) {
+      return NextResponse.json({ error: 'Invalid tenant' }, { status: 404 });
+    }
+
+    // Check if delivery partner is associated with this tenant via UserTenant table
+    const userTenant = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: session.user.id,
+          tenantId: tenant.id,
+        },
+      },
+    });
+
+    if (!userTenant) {
+      return NextResponse.json(
+        { error: 'Delivery partner is not associated with this tenant' },
+        { status: 403 }
+      );
+    }
+
     const { id } = await params;
 
     const order = await prisma.order.findFirst({
       where: {
         id,
         deliveryPartnerId: session.user.id,
+        tenantId: tenant.id,
       },
       include: {
         user: {

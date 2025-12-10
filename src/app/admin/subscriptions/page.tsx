@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
+import { useTenant } from '@/lib/useTenant';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,6 +48,8 @@ interface Subscription {
 export default function AdminSubscriptionsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { tenant } = useTenant();
+  const tenantSlug = tenant?.slug || '';
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [filteredSubscriptions, setFilteredSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
@@ -177,7 +180,7 @@ export default function AdminSubscriptionsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar tenantSlug={tenantSlug} />
 
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />

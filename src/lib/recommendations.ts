@@ -13,6 +13,7 @@ interface RecommendationOptions {
   limit?: number;
   userId?: string | null;
   excludeProductIds?: string[];
+  tenantId?: string;
 }
 
 /**
@@ -22,11 +23,15 @@ interface RecommendationOptions {
 async function getFrequentlyBoughtTogether(
   productId: string,
   limit: number = 4,
-  excludeProductIds: string[] = []
+  excludeProductIds: string[] = [],
+  tenantId?: string
 ): Promise<RecommendedProduct[]> {
   // Find all orders containing this product
   const ordersWithProduct = await prisma.orderItem.findMany({
-    where: { productId },
+    where: {
+      productId,
+      ...(tenantId ? { order: { tenantId } } : {}),
+    },
     select: { orderId: true },
   });
 
@@ -42,6 +47,7 @@ async function getFrequentlyBoughtTogether(
     where: {
       orderId: { in: orderIds },
       productId: { notIn: [productId, ...excludeProductIds] },
+      ...(tenantId ? { order: { tenantId } } : {}),
     },
     _count: { productId: true },
     orderBy: { _count: { productId: 'desc' } },
@@ -60,6 +66,7 @@ async function getFrequentlyBoughtTogether(
       id: { in: productIds },
       isAvailable: true,
       stock: { gt: 0 },
+      ...(tenantId ? { tenantId } : {}),
     },
   });
 
@@ -85,7 +92,8 @@ async function getFrequentlyBoughtTogether(
  */
 async function getTrendingProducts(
   limit: number = 4,
-  excludeProductIds: string[] = []
+  excludeProductIds: string[] = [],
+  tenantId?: string
 ): Promise<RecommendedProduct[]> {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -98,6 +106,7 @@ async function getTrendingProducts(
       productId: { notIn: excludeProductIds },
       order: {
         paymentStatus: 'PAID',
+        ...(tenantId ? { tenantId } : {}),
       },
     },
     _sum: { quantity: true },
@@ -117,6 +126,7 @@ async function getTrendingProducts(
       id: { in: productIds },
       isAvailable: true,
       stock: { gt: 0 },
+      ...(tenantId ? { tenantId } : {}),
     },
   });
 
@@ -143,11 +153,12 @@ async function getTrendingProducts(
 async function getHistoryBasedRecommendations(
   userId: string,
   limit: number = 4,
-  excludeProductIds: string[] = []
+  excludeProductIds: string[] = [],
+  tenantId?: string
 ): Promise<RecommendedProduct[]> {
   // Get categories from user's past orders
   const userOrders = await prisma.order.findMany({
-    where: { userId },
+    where: { userId, ...(tenantId ? { tenantId } : {}) },
     include: {
       items: {
         include: {
@@ -195,6 +206,7 @@ async function getHistoryBasedRecommendations(
       id: { notIn: excludeIds },
       isAvailable: true,
       stock: { gt: 0 },
+      ...(tenantId ? { tenantId } : {}),
     },
     take: limit,
     orderBy: { createdAt: 'desc' },
@@ -212,7 +224,8 @@ async function getHistoryBasedRecommendations(
 async function getFrequentlyReordered(
   userId: string,
   limit: number = 4,
-  excludeProductIds: string[] = []
+  excludeProductIds: string[] = [],
+  tenantId?: string
 ): Promise<RecommendedProduct[]> {
   // Find products ordered multiple times by this user
   // Note: We first get all items then filter in memory due to Prisma groupBy having limitations
@@ -222,6 +235,7 @@ async function getFrequentlyReordered(
       order: {
         userId,
         paymentStatus: 'PAID',
+        ...(tenantId ? { tenantId } : {}),
       },
       productId: { notIn: excludeProductIds },
     },
@@ -245,6 +259,7 @@ async function getFrequentlyReordered(
       id: { in: productIds },
       isAvailable: true,
       stock: { gt: 0 },
+      ...(tenantId ? { tenantId } : {}),
     },
   });
 
@@ -271,11 +286,12 @@ async function getFrequentlyReordered(
 async function getSameCategoryProducts(
   productId: string,
   limit: number = 4,
-  excludeProductIds: string[] = []
+  excludeProductIds: string[] = [],
+  tenantId?: string
 ): Promise<RecommendedProduct[]> {
   const product = await prisma.product.findUnique({
     where: { id: productId },
-    select: { category: true },
+    select: { category: true, tenantId: true },
   });
 
   if (!product) {
@@ -288,6 +304,7 @@ async function getSameCategoryProducts(
       id: { notIn: [productId, ...excludeProductIds] },
       isAvailable: true,
       stock: { gt: 0 },
+      ...(tenantId ? { tenantId } : product.tenantId ? { tenantId: product.tenantId } : {}),
     },
     take: limit,
     orderBy: { createdAt: 'desc' },
@@ -311,7 +328,7 @@ export async function getProductRecommendations(
   productId: string,
   options: RecommendationOptions = {}
 ): Promise<RecommendedProduct[]> {
-  const { limit = 8, userId = null, excludeProductIds = [] } = options;
+  const { limit = 8, userId = null, excludeProductIds = [], tenantId } = options;
   const excludeIds = [productId, ...excludeProductIds];
   const recommendations: RecommendedProduct[] = [];
   const seenIds = new Set<string>(excludeIds);
@@ -326,7 +343,7 @@ export async function getProductRecommendations(
   };
 
   // 1. Frequently bought together (highest priority)
-  const fbt = await getFrequentlyBoughtTogether(productId, Math.ceil(limit / 2), Array.from(seenIds));
+  const fbt = await getFrequentlyBoughtTogether(productId, Math.ceil(limit / 2), Array.from(seenIds), tenantId);
   addUnique(fbt);
 
   // 2. For returning customers, add personalized recommendations
@@ -334,7 +351,8 @@ export async function getProductRecommendations(
     const historyBased = await getHistoryBasedRecommendations(
       userId,
       Math.ceil(limit / 4),
-      Array.from(seenIds)
+      Array.from(seenIds),
+      tenantId
     );
     addUnique(historyBased);
   }
@@ -344,14 +362,15 @@ export async function getProductRecommendations(
     const sameCategory = await getSameCategoryProducts(
       productId,
       Math.ceil(limit / 4),
-      Array.from(seenIds)
+      Array.from(seenIds),
+      tenantId
     );
     addUnique(sameCategory);
   }
 
   // 4. Trending products as fallback
   if (recommendations.length < limit) {
-    const trending = await getTrendingProducts(limit - recommendations.length, Array.from(seenIds));
+    const trending = await getTrendingProducts(limit - recommendations.length, Array.from(seenIds), tenantId);
     addUnique(trending);
   }
 
@@ -366,7 +385,7 @@ export async function getCartRecommendations(
   cartProductIds: string[],
   options: RecommendationOptions = {}
 ): Promise<RecommendedProduct[]> {
-  const { limit = 6, userId = null, excludeProductIds = [] } = options;
+  const { limit = 6, userId = null, excludeProductIds = [], tenantId } = options;
   const excludeIds = [...cartProductIds, ...excludeProductIds];
   const recommendations: RecommendedProduct[] = [];
   const seenIds = new Set<string>(excludeIds);
@@ -386,7 +405,8 @@ export async function getCartRecommendations(
     const fbt = await getFrequentlyBoughtTogether(
       productId,
       Math.ceil(limit / MAX_CART_ITEMS_FOR_RECOMMENDATIONS),
-      Array.from(seenIds)
+      Array.from(seenIds),
+      tenantId
     );
     addUnique(fbt);
   }
@@ -396,14 +416,15 @@ export async function getCartRecommendations(
     const reordered = await getFrequentlyReordered(
       userId,
       Math.ceil(limit / MAX_CART_ITEMS_FOR_RECOMMENDATIONS),
-      Array.from(seenIds)
+      Array.from(seenIds),
+      tenantId
     );
     addUnique(reordered);
   }
 
   // 3. Trending products as fallback
   if (recommendations.length < limit) {
-    const trending = await getTrendingProducts(limit - recommendations.length, Array.from(seenIds));
+    const trending = await getTrendingProducts(limit - recommendations.length, Array.from(seenIds), tenantId);
     addUnique(trending);
   }
 

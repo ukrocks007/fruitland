@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTenant } from '@/lib/useTenant';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -58,6 +59,7 @@ export function ProductRecommendations({
   const [recommendations, setRecommendations] = useState<RecommendedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
+  const { tenant } = useTenant();
 
   useEffect(() => {
     const fetchRecommendations = async () => {
@@ -85,7 +87,7 @@ export function ProductRecommendations({
   const addToCart = async (product: RecommendedProduct) => {
     setAddingToCart(prev => ({ ...prev, [product.id]: true }));
     try {
-      const res = await fetch('/api/cart', {
+      const res = await fetch(`/api/cart?tenantSlug=${tenant?.slug ?? ''}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

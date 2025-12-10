@@ -8,7 +8,16 @@
     "start": "next start",
     "lint": "eslint",
     "db:seed": "tsx prisma/seed.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f postgres",
+    "docker:restart": "docker-compose restart postgres",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:prod": "prisma migrate deploy",
+    "db:reset": "prisma migrate reset --force",
+    "db:studio": "prisma studio",
+    "db:setup": "npm run docker:up && sleep 3 && npm run db:migrate && npm run db:seed"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

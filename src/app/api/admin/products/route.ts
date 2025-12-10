@@ -12,6 +12,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get user's tenantId
+    if (!session.user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const { name, description, price, category, stock, image, isAvailable } = body;
 
@@ -24,6 +32,7 @@ export async function POST(request: NextRequest) {
 
     const product = await prisma.product.create({
       data: {
+        tenantId: session.user.tenantId,
         name,
         description: description || '',
         price: parseFloat(price),

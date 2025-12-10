@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
+import { useTenant } from '@/lib/useTenant';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +50,8 @@ interface LoyaltyInfo {
 }
 
 export default function ProfilePage() {
+    const { tenant } = useTenant();
+    const tenantSlug = tenant?.slug || '';
   const { data: session, status } = useSession();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(false);
@@ -167,7 +170,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar tenantSlug={tenantSlug} />
       
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">My Profile</h1>
