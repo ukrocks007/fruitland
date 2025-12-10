@@ -18,7 +18,7 @@ const TENANT_INDEPENDENT_ROUTES = [
   '/auth', // Keep root /auth for backwards compatibility
 ];
 
-export async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Skip middleware for public routes
