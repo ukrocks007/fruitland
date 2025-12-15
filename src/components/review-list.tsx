@@ -45,7 +45,7 @@ export function ReviewList({ productId }: ReviewListProps) {
     return (
       <Card>
         <CardContent className="py-8 text-center">
-          <p className="text-gray-500">Loading reviews...</p>
+          <p className="text-gray-500">Loading fresh reviews...</p>
         </CardContent>
       </Card>
     );
@@ -55,10 +55,10 @@ export function ReviewList({ productId }: ReviewListProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Customer Reviews</CardTitle>
+          <CardTitle>Customer Reviews — Hazare Dairy Farm</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-500">No reviews yet. Be the first to review this product!</p>
+          <p className="text-gray-500">No reviews yet. Be the first to review this dairy product from Hazare Dairy Farm!</p>
         </CardContent>
       </Card>
     );
@@ -68,7 +68,7 @@ export function ReviewList({ productId }: ReviewListProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          Customer Reviews
+          Customer Reviews — Hazare Dairy Farm
           <Badge variant="outline">{stats.totalReviews} reviews</Badge>
         </CardTitle>
         <CardDescription>

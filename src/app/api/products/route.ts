@@ -12,11 +12,11 @@ export async function GET(request: NextRequest) {
     const available = searchParams.get('available');
 
     const where: any = {};
-    
+
     if (category) {
       where.category = category;
     }
-    
+
     if (available === 'true') {
       where.isAvailable = true;
     }
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, price, image, category, stock, isAvailable, isSeasonal } = body;
+    const { name, description, price, image, category, stock, isAvailable, isSeasonal, fatPercentage, shelfLifeDays, isRefrigerated } = body;
 
     if (!name || !description || price === undefined || !image || !category) {
       return NextResponse.json(
@@ -70,6 +70,9 @@ export async function POST(request: NextRequest) {
         stock: stock || 0,
         isAvailable: isAvailable !== undefined ? isAvailable : true,
         isSeasonal: isSeasonal !== undefined ? isSeasonal : false,
+        fatPercentage: fatPercentage ? parseFloat(fatPercentage) : null,
+        shelfLifeDays: shelfLifeDays ? parseInt(shelfLifeDays) : null,
+        isRefrigerated: isRefrigerated !== undefined ? isRefrigerated : true,
       },
     });
 

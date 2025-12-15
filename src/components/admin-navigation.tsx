@@ -37,6 +37,12 @@ const navItems = [
     variant: 'outline' as const,
   },
   {
+    href: '/admin/deliveries',
+    label: 'Daily Deliveries',
+    icon: Truck,
+    variant: 'outline' as const,
+  },
+  {
     href: '/admin/bulk-orders',
     label: 'Bulk Orders',
     icon: Building2,

@@ -107,12 +107,38 @@ export default function SubscriptionsPage() {
 
   const getFrequencyLabel = (frequency: string) => {
     const labels: Record<string, string> = {
-      DAILY: 'Daily',
+      DAILY: 'Daily Morning',
+      ALTERNATE_DAYS: 'Alternate Days',
       WEEKLY: 'Weekly',
       BIWEEKLY: 'Bi-weekly',
       MONTHLY: 'Monthly',
     };
     return labels[frequency] || frequency;
+  };
+
+  const formatEnumLikeText = (value: string) =>
+    value
+      .toLowerCase()
+      .split('_')
+      .filter(Boolean)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+
+  const getFrequencyDisplayText = (frequency: string) => {
+    switch (frequency) {
+      case 'DAILY':
+        return 'Day';
+      case 'ALTERNATE_DAYS':
+        return 'Alternate Day';
+      case 'WEEKLY':
+        return 'Week';
+      case 'BIWEEKLY':
+        return 'Week';
+      case 'MONTHLY':
+        return 'Month';
+      default:
+        return formatEnumLikeText(frequency);
+    }
   };
 
   const parseFeatures = (features: string): string[] => {
@@ -133,7 +159,7 @@ export default function SubscriptionsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Subscriptions</h1>
 
@@ -141,21 +167,19 @@ export default function SubscriptionsPage() {
         <div className="flex gap-4 mb-8 border-b">
           <button
             onClick={() => setActiveTab('packages')}
-            className={`pb-4 px-2 font-medium transition-colors ${
-              activeTab === 'packages'
+            className={`pb-4 px-2 font-medium transition-colors ${activeTab === 'packages'
                 ? 'border-b-2 border-green-600 text-green-600'
                 : 'text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             Available Packages
           </button>
           <button
             onClick={() => setActiveTab('my-subscriptions')}
-            className={`pb-4 px-2 font-medium transition-colors ${
-              activeTab === 'my-subscriptions'
+            className={`pb-4 px-2 font-medium transition-colors ${activeTab === 'my-subscriptions'
                 ? 'border-b-2 border-green-600 text-green-600'
                 : 'text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             My Subscriptions ({subscriptions.length})
           </button>
@@ -194,7 +218,7 @@ export default function SubscriptionsPage() {
                       <p className="text-3xl font-bold text-green-600">
                         ₹{pkg.price.toFixed(2)}
                       </p>
-                      <p className="text-sm text-gray-600">per {pkg.frequency.toLowerCase()}</p>
+                      <p className="text-sm text-gray-600">per {getFrequencyDisplayText(pkg.frequency)}</p>
                     </div>
 
                     {pkg.features && (
@@ -259,7 +283,7 @@ export default function SubscriptionsPage() {
                         <div>
                           <p className="text-sm text-gray-600">Next Delivery</p>
                           <p className="font-medium">
-                            {subscription.status === 'ACTIVE' 
+                            {subscription.status === 'ACTIVE'
                               ? format(new Date(subscription.nextDeliveryDate), 'PP')
                               : 'N/A'
                             }

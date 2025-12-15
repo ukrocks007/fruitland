@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Loader2, Plus, Minus, ShoppingCart, Building2, MapPin, Trash2 } from 'lucide-react';
 import Image from 'next/image';
+import { fetchPublicUiConfig } from '@/lib/public-ui-config';
 
 interface Product {
   id: string;
@@ -57,6 +58,7 @@ export default function BulkOrderPage() {
   const [savingAddress, setSavingAddress] = useState(false);
   const [step, setStep] = useState<'products' | 'details'>('products');
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
+  const [showStockOnProductPages, setShowStockOnProductPages] = useState(true);
 
   // Bulk customer info
   const [bulkCustomerName, setBulkCustomerName] = useState('');
@@ -83,6 +85,7 @@ export default function BulkOrderPage() {
     }
 
     if (status === 'authenticated') {
+      fetchPublicUiConfig().then((cfg) => setShowStockOnProductPages(cfg.showStockOnProductPages));
       loadData();
     }
   }, [status, router]);
@@ -299,7 +302,7 @@ export default function BulkOrderPage() {
                   <div className="grid md:grid-cols-2 gap-4">
                     {products.map((product) => (
                       <div key={product.id} className="flex gap-4 p-4 border rounded-lg">
-                        <div className="relative h-20 w-20 flex-shrink-0 rounded overflow-hidden bg-gray-100">
+                        <div className="relative h-20 w-20 shrink-0 rounded overflow-hidden bg-gray-100">
                           <Image
                             src={product.image}
                             alt={product.name}
@@ -310,7 +313,9 @@ export default function BulkOrderPage() {
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium truncate">{product.name}</h4>
                           <p className="text-sm text-gray-500">₹{product.price}</p>
-                          <p className="text-xs text-gray-400">Stock: {product.stock}</p>
+                          {showStockOnProductPages && (
+                            <p className="text-xs text-gray-400">Stock: {product.stock}</p>
+                          )}
 
                           <div className="flex items-center gap-2 mt-2">
                             {getCartQuantity(product.id) > 0 ? (

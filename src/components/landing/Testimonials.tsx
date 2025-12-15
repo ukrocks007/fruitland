@@ -8,23 +8,23 @@ const testimonials = [
     {
         id: 1,
         name: "Priya Kulkarni",
-        role: "Home Chef",
-        content: "The quality of Alphonso mangoes was incredible! Better than anything I've found in local markets. The packaging was eco-friendly too.",
-        avatar: "PS"
+        role: "Home Cook",
+        content: "Hazare's full-cream milk tastes like it just came from the farm — rich, fresh and pure. Our tea and kheer have never been better!",
+        avatar: "PK"
     },
     {
         id: 2,
         name: "Rahul Mehta",
-        role: "Fitness Enthusiast",
-        content: "I subscribe to the weekly fruit basket. It saves me so much time and ensures I get my daily vitamins. Highly recommended!",
-        avatar: "RV"
+        role: "Nutritionist",
+        content: "I rely on Hazare Dairy for consistent, high-quality milk. The delivery is punctual and the products are always fresh.",
+        avatar: "RM"
     },
     {
         id: 3,
         name: "Anita Malusare",
         role: "Mother of two",
-        content: "My kids love the berries! They are always fresh and sweet. Delivery is prompt and the customer service is very responsive.",
-        avatar: "AD"
+        content: "My kids love the milk and curd — always creamy and wholesome. Excellent taste and reliable service.",
+        avatar: "AM"
     }
 ];
 
@@ -35,7 +35,7 @@ export function Testimonials() {
                 <div className="text-center mb-16">
                     <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Loved by Families</h2>
                     <p className="text-gray-600 max-w-2xl mx-auto">
-                        Don't just take our word for it. Here's what our community has to say about the Fruitland experience.
+                        Don't just take our word for it. Here's what our community has to say about the Hazare Dairy Farm experience.
                     </p>
                 </div>
 

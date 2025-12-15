@@ -64,7 +64,7 @@ export async function getCategories() {
         // Map them to the format expected by the UI
         // We'll add emojis and colors based on the category name
         return categories.map(c => {
-            const name = c.category.charAt(0).toUpperCase() + c.category.slice(1);
+            const name = c.category.charAt(0).toUpperCase() + c.category.slice(1).toLowerCase();
             let emoji = '🍎';
             let color = 'bg-red-100';
 
@@ -84,6 +84,26 @@ export async function getCategories() {
                 case 'exotic':
                     emoji = '🥝';
                     color = 'bg-purple-100';
+                    break;
+                case 'milk':
+                    emoji = '🥛';
+                    color = 'bg-sky-100';
+                    break;
+                case 'curd':
+                    emoji = '🥣';
+                    color = 'bg-amber-100';
+                    break;
+                case 'paneer':
+                    emoji = '🧀';
+                    color = 'bg-amber-100';
+                    break;
+                case 'ghee':
+                    emoji = '🫙';
+                    color = 'bg-amber-100';
+                    break;
+                case 'butter':
+                    emoji = '🧈';
+                    color = 'bg-amber-100';
                     break;
                 default:
                     emoji = '🧺';

@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Loader2, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { addWeeks, addMonths, format } from 'date-fns';
+import { addWeeks, addMonths, format, addDays } from 'date-fns';
 
 interface Address {
   id: string;
@@ -68,7 +68,7 @@ function NewSubscriptionContent() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch package details if packageId is provided
       if (packageId) {
         const packageRes = await fetch(`/api/subscription-packages`);
@@ -86,7 +86,7 @@ function NewSubscriptionContent() {
       if (addressesRes.ok) {
         const data = await addressesRes.json();
         setAddresses(data?.addresses || data || []);
-        
+
         // Auto-select default address
         const defaultAddr = data.addresses?.find((a: Address) => a.isDefault);
         if (defaultAddr) {
@@ -117,7 +117,7 @@ function NewSubscriptionContent() {
       setAddresses([...addresses, data]);
       setSelectedAddressId(data.id);
       setShowAddressForm(false);
-      
+
       // Reset form
       setAddressForm({
         name: '',
@@ -128,7 +128,7 @@ function NewSubscriptionContent() {
         state: '',
         pincode: '',
       });
-      
+
       toast.success('Address added successfully');
     } catch (error) {
       console.error('Error adding address:', error);
@@ -154,7 +154,10 @@ function NewSubscriptionContent() {
       let nextDeliveryDate = new Date();
       switch (selectedPackage.frequency) {
         case 'DAILY':
-          nextDeliveryDate.setDate(nextDeliveryDate.getDate() + 1);
+          nextDeliveryDate = addDays(nextDeliveryDate, 1);
+          break;
+        case 'ALTERNATE_DAYS':
+          nextDeliveryDate = addDays(nextDeliveryDate, 2);
           break;
         case 'WEEKLY':
           nextDeliveryDate = addWeeks(nextDeliveryDate, 1);
@@ -195,6 +198,7 @@ function NewSubscriptionContent() {
   const getFrequencyLabel = (frequency: string) => {
     const labels: Record<string, string> = {
       DAILY: 'Daily',
+      ALTERNATE_DAYS: 'Alternate Days',
       WEEKLY: 'Weekly',
       MONTHLY: 'Monthly',
     };
@@ -237,7 +241,7 @@ function NewSubscriptionContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Create Subscription</h1>
 
@@ -299,11 +303,10 @@ function NewSubscriptionContent() {
                     {addresses.map((address) => (
                       <label
                         key={address.id}
-                        className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-                          selectedAddressId === address.id
-                            ? 'border-green-600 bg-green-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                        className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${selectedAddressId === address.id
+                          ? 'border-green-600 bg-green-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                          }`}
                       >
                         <input
                           type="radio"
@@ -359,7 +362,7 @@ function NewSubscriptionContent() {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="addressLine1">Address Line 1 *</Label>
                       <Input
@@ -369,7 +372,7 @@ function NewSubscriptionContent() {
                         required
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="addressLine2">Address Line 2</Label>
                       <Input
@@ -378,7 +381,7 @@ function NewSubscriptionContent() {
                         onChange={(e) => setAddressForm({ ...addressForm, addressLine2: e.target.value })}
                       />
                     </div>
-                    
+
                     <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="city">City *</Label>
@@ -408,7 +411,7 @@ function NewSubscriptionContent() {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="flex gap-2">
                       <Button type="submit" className="flex-1">
                         Save Address

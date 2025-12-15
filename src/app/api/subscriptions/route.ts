@@ -66,6 +66,12 @@ export async function POST(request: NextRequest) {
     // Calculate next delivery date based on frequency
     let nextDeliveryDate = new Date();
     switch (frequency) {
+      case 'DAILY':
+        nextDeliveryDate = addDays(nextDeliveryDate, 1);
+        break;
+      case 'ALTERNATE_DAYS':
+        nextDeliveryDate = addDays(nextDeliveryDate, 2);
+        break;
       case 'WEEKLY':
         nextDeliveryDate = addWeeks(nextDeliveryDate, 1);
         break;

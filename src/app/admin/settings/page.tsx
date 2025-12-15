@@ -46,6 +46,7 @@ export default function AdminSettingsPage() {
     siteName: 'Fruitland',
     supportEmail: '',
     lowStockThreshold: '10',
+    showStockOnProductPages: true,
   });
 
   const [loyaltySettings, setLoyaltySettings] = useState<LoyaltySettings>({
@@ -86,6 +87,7 @@ export default function AdminSettingsPage() {
         siteName: configMap['SITE_NAME'] || 'Fruitland',
         supportEmail: configMap['SUPPORT_EMAIL'] || '',
         lowStockThreshold: configMap['LOW_STOCK_THRESHOLD'] || '10',
+        showStockOnProductPages: configMap['SHOW_STOCK_ON_PRODUCT_PAGES'] !== 'false',
       });
 
       // Fetch loyalty settings
@@ -127,6 +129,7 @@ export default function AdminSettingsPage() {
         { key: 'SITE_NAME', value: generalSettings.siteName, label: 'Site Name' },
         { key: 'SUPPORT_EMAIL', value: generalSettings.supportEmail, label: 'Support Email' },
         { key: 'LOW_STOCK_THRESHOLD', value: generalSettings.lowStockThreshold, label: 'Low Stock Threshold' },
+        { key: 'SHOW_STOCK_ON_PRODUCT_PAGES', value: generalSettings.showStockOnProductPages.toString(), label: 'Show Stock on Product Pages' },
       ];
 
       const response = await fetch('/api/admin/config', {
@@ -479,6 +482,24 @@ export default function AdminSettingsPage() {
                 <p className="text-xs text-gray-500">
                   Products with stock below this value will be flagged in the dashboard
                 </p>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  id="showStockOnProductPages"
+                  type="checkbox"
+                  checked={generalSettings.showStockOnProductPages}
+                  onChange={(e) =>
+                    setGeneralSettings({
+                      ...generalSettings,
+                      showStockOnProductPages: e.target.checked,
+                    })
+                  }
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="showStockOnProductPages">
+                  Show stock count on product pages
+                </Label>
               </div>
             </CardContent>
           </Card>

@@ -12,6 +12,7 @@ import { CartRecommendations } from '@/components/CartRecommendations';
 import { Minus, Plus, Trash2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import { fetchPublicUiConfig } from '@/lib/public-ui-config';
 
 interface CartItem {
   id: string;
@@ -32,6 +33,7 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const [updatingItems, setUpdatingItems] = useState<Record<string, boolean>>({});
   const [clearingCart, setClearingCart] = useState(false);
+  const [showStockOnProductPages, setShowStockOnProductPages] = useState(true);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -40,6 +42,7 @@ export default function CartPage() {
     }
 
     if (status === 'authenticated') {
+      fetchPublicUiConfig().then((cfg) => setShowStockOnProductPages(cfg.showStockOnProductPages));
       fetchCart();
     }
   }, [status, router]);
@@ -252,7 +255,9 @@ export default function CartPage() {
 
                         {item.product.stock <= 10 && (
                           <Badge variant="outline" className="mt-2 text-orange-600">
-                            Only {item.product.stock} left in stock
+                            {showStockOnProductPages
+                              ? `Only ${item.product.stock} left in stock`
+                              : 'Low stock'}
                           </Badge>
                         )}
                       </div>

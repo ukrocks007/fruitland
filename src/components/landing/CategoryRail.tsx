@@ -23,7 +23,7 @@ export function CategoryRail({ categories }: CategoryRailProps) {
         <section className="py-12 border-b border-gray-100 bg-white">
             <div className="container mx-auto px-4">
                 <h2 className="text-2xl font-bold text-gray-900 mb-8">Shop by Category</h2>
-                <div className="flex gap-8 overflow-x-auto pb-6 scrollbar-hide snap-x">
+                <div className="flex gap-8 overflow-x-auto scrollbar-hide snap-x p-2 pb-6">
                     {categories.map((cat) => (
                         <Link key={cat.name} href={`/products?category=${cat.value}`} className="snap-start shrink-0 group">
                             <motion.div

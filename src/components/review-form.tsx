@@ -56,7 +56,7 @@ export function ReviewForm({ productId, productName, onSuccess, onCancel }: Revi
         throw new Error(data.error || 'Failed to submit review');
       }
 
-      toast.success(data.message || 'Review submitted successfully!');
+      toast.success(data.message || "Thanks — your dairy review has been submitted!");
       setRating(0);
       setTitle('');
       setComment('');
@@ -72,7 +72,7 @@ export function ReviewForm({ productId, productName, onSuccess, onCancel }: Revi
     <Card>
       <CardHeader>
         <CardTitle>Write a Review</CardTitle>
-        <CardDescription>Share your experience with {productName}</CardDescription>
+        <CardDescription>Share your experience with Hazare Dairy Farm's {productName}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -103,7 +103,7 @@ export function ReviewForm({ productId, productName, onSuccess, onCancel }: Revi
               id="comment"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Tell others about your experience with this product..."
+              placeholder="Tell others about your experience with this dairy product..."
               rows={4}
               maxLength={2000}
               required

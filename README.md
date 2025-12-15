@@ -1,208 +1,112 @@
-# 🍎 Fruitland - Fresh Fruit Subscription & E-commerce Platform
+# 🥛 Hazare Dairy Farm - Subscription Web App
 
-A modern, full-stack fruit subscription and e-commerce web application built with Next.js, TypeScript, Prisma, and Razorpay payments.
+A production-ready daily milk subscription platform for Hazare Dairy Farm.
+Built with Next.js 15, TypeScript, Prisma, and Razorpay.
 
-## ✨ Features
+## 🌟 Features
 
-### Customer-Facing Store
-- **Product Catalog**: Browse fresh, seasonal, organic, and exotic fruits
-- **Subscription Management**: Weekly, bi-weekly, and monthly subscription plans
-- **One-time Purchases**: Option to buy without subscription
-- **User Authentication**: Secure signup and login with NextAuth.js
-- **Order Management**: View order history and track deliveries
-- **Subscription Controls**: Pause, resume, skip, or cancel subscriptions
-- **Secure Payments**: Integrated Razorpay for UPI, cards, and net banking
+### 🥛 Dairy Subscription System
+- **Daily Morning Delivery**: Automated scheduling for daily milk needs.
+- **Alternate Day Option**: For flexible delivery schedules.
+- **Pause/Resume**: Customers can pause subscriptions when out of town.
+- **Wallet/Payment**: Integrated Razorpay for payments.
 
-### Admin Panel
-- **Dashboard Analytics**: Key metrics (MRR, active subscriptions, orders, customers)
-- **Product Management**: Add, edit, delete fruits; manage inventory and prices
-- **Order Management**: View and manage all orders and subscriptions
-- **Customer Management**: View customer data, order history, and subscriptions
-- **Inventory Alerts**: Low stock warnings and seasonal availability tracking
+### 🛍️ Product Catalog
+- **Milk**: Cow Milk, Buffalo Milk (Fat % displayed).
+- **Dairy Products**: Curd, Paneer, Ghee, Butter.
+- **Freshness Indicators**: Shelf life and refrigeration notes.
 
-## 🛠️ Tech Stack
+### 🚛 Admin Dashboard
+- **Daily Deliveries**: View exactly what needs to be delivered today.
+- **Delivery Management**: Mark deliveries as 'Delivered' or 'Missed'.
+- **Product Management**: Manage stock, price, and dairy attributes.
+- **Analytics**: Track active subscriptions and revenue.
 
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript
-- **UI Components**: shadcn/ui + Tailwind CSS
-- **Database**: SQLite (Prisma ORM) - easily switch to PostgreSQL/MySQL
-- **Authentication**: NextAuth.js v4
-- **Payments**: Razorpay SDK
-- **Deployment**: Vercel-ready
+## 🚀 Deployment Guide (Vercel)
 
-## 📋 Prerequisites
+This application is optimised for deployment on Vercel.
 
-- Node.js 20.12 or higher
-- npm or yarn package manager
-- Razorpay account (get test/live API keys)
+### 1. Prerequisites
+- **GitHub Account**: Push this repository to your GitHub.
+- **Vercel Account**: Sign up at vercel.com.
+- **Postgres Database**: Use Vercel Postgres, Supabase, or Neon.
+- **Razorpay Account**: Get API credentials.
 
-## 🚀 Getting Started
+### 2. Deployment Steps
 
-### 1. Install Dependencies
+1.  **Import Project**: Go to Vercel Dashboard -> Add New Project -> Import from GitHub.
+2.  **Environment Variables**: Configure the following in Vercel Project Settings:
+    ```env
+    # Database (Postgres)
+    DATABASE_URL="postgres://user:password@host:port/dbname"
 
-\`\`\`bash
-npm install
-\`\`\`
+    # NextAuth (Authentication)
+    NEXTAUTH_URL="https://hazare-dairy.yourdomain.com" # Your Vercel domain
+    NEXTAUTH_SECRET="generate-a-random-secret-key-at-least-32-chars"
 
-### 2. Environment Setup
+    # App Config
+    NEXT_PUBLIC_APP_URL="https://hazare-dairy.yourdomain.com"
 
-Create a \`.env\` file in the root directory:
+    # Razorpay (Payments)
+    NEXT_PUBLIC_RAZORPAY_KEY_ID="rzp_test_..." 
+    RAZORPAY_KEY_SECRET="your_secret_key"
+    ```
+3.  **Build Settings**:
+    - Framework Preset: Next.js
+    - Build Command: `prisma generate && next build` (Default is usually `next build`, but `prisma generate` is safer).
+    - *Note*: You can use the default `next build` if `postinstall` script in `package.json` runs `prisma generate`. (It does).
 
-\`\`\`env
-# Database
-DATABASE_URL="file:./dev.db"
+4.  **Database Migration**:
+    - After deployment (or during build if configured), you need to push the schema.
+    - Recommended: Run `npx prisma db push` locally pointing to the PRODUCTION database URL, OR use Vercel's build step to run migration if you set it up.
+    - **Seeding**: To populate initial data (Products, Packages), run:
+        ```bash
+        DATABASE_URL="your_production_db_url" npm run db:seed
+        ```
 
-# NextAuth
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-super-secret-key-change-this-in-production"
+5.  **Domain Configuration**:
+    - Go to Vercel Settings -> Domains.
+    - Add `hazare-dairy.yourdomain.com`.
 
-# Razorpay Keys (Get from https://dashboard.razorpay.com/)
-NEXT_PUBLIC_RAZORPAY_KEY_ID="your_razorpay_test_key_id"
-RAZORPAY_KEY_SECRET="your_razorpay_test_key_secret"
+### 3. Verification
+- Visit the deployed URL.
+- Log in as Admin (Credentials from seed or created manually).
+- Verify "Daily Deliveries" dashboard loads.
+- Test a subscription flow.
 
-# App Configuration
-NEXT_PUBLIC_APP_NAME="Fruitland"
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-\`\`\`
+## 🛠️ Local Development
 
-### 3. Database Setup
+1.  **Clone & Install**
+    ```bash
+    git clone <repo-url>
+    npm install
+    ```
 
-\`\`\`bash
-# Generate Prisma client
-npx prisma generate
+2.  **Setup Environment**
+    Copy `.env.example` to `.env` and fill in details.
+    ```bash
+    # For local dev using SQLite (if supported) or local Postgres
+    DATABASE_URL="postgresql://..."
+    ```
 
-# Push database schema
-npx prisma db push
-\`\`\`
+3.  **Run Database**
+    ```bash
+    npx prisma db push
+    npm run db:seed
+    ```
 
-### 4. Run Development Server
+4.  **Start Server**
+    ```bash
+    npm run dev
+    ```
 
-\`\`\`bash
-npm run dev
-\`\`\`
+## 📦 Project Structure
 
-Open [http://localhost:3000](http://localhost:3000) to see your application.
-
-## 📦 Database Schema
-
-The application uses Prisma ORM with the following models:
-
-- **User**: Customer/Admin authentication and profiles
-- **Product**: Fruit products with inventory tracking
-- **Order**: Customer orders with payment tracking
-- **Subscription**: Recurring fruit box subscriptions
-- **Address**: Customer delivery addresses
-- **OrderItem/SubscriptionItem**: Line items for orders and subscriptions
-
-## 💳 Razorpay Integration
-
-### Setup Steps:
-
-1. Sign up at [Razorpay Dashboard](https://dashboard.razorpay.com/)
-2. Navigate to Settings → API Keys
-3. Generate Test Keys for development
-4. Add keys to \`.env\` file
-5. For production, generate Live Keys and update environment variables
-
-### Payment Flow:
-
-1. User adds items to cart and proceeds to checkout
-2. Backend creates a Razorpay order via \`/api/payment/create-order\`
-3. Frontend loads Razorpay Checkout UI with order_id
-4. User completes payment (UPI/card/net banking)
-5. Payment response sent to \`/api/payment/verify\`
-6. Backend verifies signature and updates order status
-
-### Test Credentials (Test Mode):
-
-- **Card**: 4111 1111 1111 1111
-- **CVV**: Any 3 digits
-- **Expiry**: Any future date
-- **OTP**: 123456
-
-## 🏗️ Project Structure
-
-\`\`\`
-fruitland/
-├── prisma/
-│   └── schema.prisma          # Database schema
-├── src/
-│   ├── app/
-│   │   ├── api/              # API routes
-│   │   │   ├── auth/         # Authentication
-│   │   │   ├── products/     # Product CRUD
-│   │   │   ├── orders/       # Orders
-│   │   │   ├── subscriptions/# Subscriptions
-│   │   │   ├── payment/      # Razorpay
-│   │   │   └── admin/        # Admin analytics
-│   │   ├── auth/             # Auth pages
-│   │   ├── admin/            # Admin dashboard
-│   │   ├── layout.tsx        # Root layout
-│   │   └── page.tsx          # Homepage
-│   ├── components/
-│   │   ├── ui/               # shadcn/ui components
-│   │   ├── navbar.tsx        # Navigation
-│   │   └── providers.tsx     # Providers
-│   ├── lib/
-│   │   ├── prisma.ts         # Prisma client
-│   │   ├── auth.ts           # NextAuth config
-│   │   └── razorpay.ts       # Razorpay utilities
-│   └── types/
-│       └── index.ts          # Type definitions
-├── .env                      # Environment variables
-└── README.md
-\`\`\`
-
-## 🎨 UI Components
-
-Built with **shadcn/ui** - fully customizable components. Customize theme in \`src/app/globals.css\`.
-
-## 🔐 Authentication
-
-- **Provider**: NextAuth.js with credentials
-- **Password**: Hashed with bcryptjs
-- **Session**: JWT-based
-- **Roles**: CUSTOMER and ADMIN
-
-### Creating an Admin User:
-
-\`\`\`bash
-npx prisma studio
-# Manually update a user's role to "ADMIN"
-\`\`\`
-
-## 🚢 Deployment to Vercel
-
-1. Push to GitHub
-2. Import repository to Vercel
-3. Add environment variables
-4. Deploy!
-
-For production, migrate to PostgreSQL using Vercel Postgres, Supabase, or PlanetScale.
-
-## 📊 API Endpoints
-
-### Public
-- \`GET /api/products\` - List products
-
-### Authenticated
-- \`POST /api/auth/register\` - Register
-- \`POST /api/payment/create-order\` - Create order
-- \`POST /api/payment/verify\` - Verify payment
-- \`GET /api/orders\` - User orders
-- \`GET /api/subscriptions\` - User subscriptions
-- \`POST /api/subscriptions\` - Create subscription
-- \`PATCH /api/subscriptions/[id]\` - Update subscription
-
-### Admin Only
-- \`POST/PUT/DELETE /api/products\` - Manage products
-- \`GET /api/admin/analytics\` - Analytics
-
-## 📄 License
-
-MIT License
+- `src/app/admin/deliveries`: Daily delivery management.
+- `src/app/subscriptions`: Subscription user interface.
+- `prisma/schema.prisma`: Database model (Product, Subscription, Order).
+- `prisma/seed.ts`: Initial data for Hazare Dairy.
 
 ---
 
-**Built with ❤️ using Next.js, TypeScript, Prisma, and Razorpay**
-
+**Hazare Dairy Farm** - Pure & Fresh.

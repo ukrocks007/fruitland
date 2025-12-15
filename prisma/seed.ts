@@ -4,16 +4,16 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log('🌱 Seeding database for Hazare Dairy Farm...');
 
   // Create admin user
   const adminPassword = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@fruitland.com' },
+    where: { email: 'admin@hazaredairy.com' },
     update: {},
     create: {
-      email: 'admin@fruitland.com',
-      name: 'Admin User',
+      email: 'admin@hazaredairy.com',
+      name: 'Hazare Admin',
       password: adminPassword,
       role: 'ADMIN',
     },
@@ -27,94 +27,88 @@ async function main() {
     update: {},
     create: {
       email: 'customer@example.com',
-      name: 'Test Customer',
+      name: 'Ravi Kumar',
       password: customerPassword,
       role: 'CUSTOMER',
     },
   });
   console.log('✅ Customer user created:', customer.email);
 
-  // Create sample products
+  // Clear existing products to avoid duplicates if re-seeding differently
+  // await prisma.product.deleteMany({}); 
+
+  // Create dairy products
   const products = [
     {
-      name: 'Fresh Apples',
-      description: 'Crisp and juicy red apples, perfect for snacking',
-      price: 150,
-      image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400',
-      category: 'fresh',
+      name: 'Cow Milk (1L)',
+      description: 'Fresh, pure cow milk. Delivered daily morning.',
+      price: 70,
+      image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400',
+      category: 'MILK',
+      stock: 500,
+      isAvailable: true,
+      fatPercentage: 4.5,
+      shelfLifeDays: 2,
+      isRefrigerated: true,
+    },
+    {
+      name: 'Cow Milk (500ml)',
+      description: 'Fresh, pure cow milk in 500ml pack.',
+      price: 38,
+      image: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400',
+      category: 'MILK',
+      stock: 500,
+      isAvailable: true,
+      fatPercentage: 4.5,
+      shelfLifeDays: 2,
+      isRefrigerated: true,
+    },
+    {
+      name: 'Buffalo Milk (1L)',
+      description: 'Rich and creamy buffalo milk. High fat content.',
+      price: 85,
+      image: 'https://images.unsplash.com/photo-1559598467-f8b76c8155d0?w=400',
+      category: 'MILK',
+      stock: 300,
+      isAvailable: true,
+      fatPercentage: 7.0,
+      shelfLifeDays: 2,
+      isRefrigerated: true,
+    },
+    {
+      name: 'Fresh Curd (500g)',
+      description: 'Thick, creamy curd set from pure milk.',
+      price: 50,
+      image: 'https://images.unsplash.com/photo-1599307767316-77f6b7d6a520?w=400',
+      category: 'CURD',
       stock: 100,
       isAvailable: true,
-      isSeasonal: false,
+      fatPercentage: 4.0,
+      shelfLifeDays: 5,
+      isRefrigerated: true,
     },
     {
-      name: 'Organic Bananas',
-      description: 'Sweet organic bananas from local farms',
-      price: 60,
-      image: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=400',
-      category: 'organic',
-      stock: 150,
-      isAvailable: true,
-      isSeasonal: false,
-    },
-    {
-      name: 'Seasonal Strawberries',
-      description: 'Fresh seasonal strawberries, limited availability',
-      price: 250,
-      image: 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=400',
-      category: 'seasonal',
+      name: 'Desi Ghee (500ml)',
+      description: 'Aromatic ghee made from traditional bilona method.',
+      price: 650,
+      image: 'https://images.unsplash.com/photo-1631451095765-2c91616fc9e6?w=400',
+      category: 'GHEE',
       stock: 50,
       isAvailable: true,
-      isSeasonal: true,
+      shelfLifeDays: 180,
+      isRefrigerated: false,
     },
     {
-      name: 'Exotic Mango',
-      description: 'Premium Alphonso mangoes from Maharashtra',
-      price: 400,
-      image: 'https://images.unsplash.com/photo-1553279768-865429fa0078?w=400',
-      category: 'exotic',
-      stock: 30,
+      name: 'Fresh Paneer (200g)',
+      description: 'Soft and fresh paneer cubes.',
+      price: 90,
+      image: 'https://images.unsplash.com/photo-1559598467-f8b76c8155d0?w=400', // Placeholder
+      category: 'PANEER',
+      stock: 100,
       isAvailable: true,
-      isSeasonal: true,
-    },
-    {
-      name: 'Fresh Oranges',
-      description: 'Vitamin C rich fresh oranges',
-      price: 120,
-      image: 'https://images.unsplash.com/photo-1547514701-42782101795e?w=400',
-      category: 'fresh',
-      stock: 200,
-      isAvailable: true,
-      isSeasonal: false,
-    },
-    {
-      name: 'Organic Avocado',
-      description: 'Creamy organic avocados',
-      price: 180,
-      image: 'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=400',
-      category: 'organic',
-      stock: 80,
-      isAvailable: true,
-      isSeasonal: false,
-    },
-    {
-      name: 'Dragon Fruit',
-      description: 'Exotic dragon fruit with unique flavor',
-      price: 350,
-      image: 'https://images.unsplash.com/photo-1527325678964-54921661f888?w=400',
-      category: 'exotic',
-      stock: 25,
-      isAvailable: true,
-      isSeasonal: false,
-    },
-    {
-      name: 'Watermelon',
-      description: 'Sweet and refreshing watermelon',
-      price: 80,
-      image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400',
-      category: 'seasonal',
-      stock: 60,
-      isAvailable: true,
-      isSeasonal: true,
+      fatPercentage: 15.0,
+      shelfLifeDays: 3,
+      isRefrigerated: true,
     },
   ];
 
@@ -122,18 +116,52 @@ async function main() {
     const existing = await prisma.product.findFirst({
       where: { name: product.name },
     });
-    
+
     if (!existing) {
       await prisma.product.create({
         data: product,
       });
+    } else {
+      // Update existing if needed
+      await prisma.product.update({
+        where: { id: existing.id },
+        data: product
+      });
     }
   }
-  console.log(`✅ Created ${products.length} products`);
+  console.log(`✅ Seeded ${products.length} products`);
 
-  // Get all products for creating sample orders
+  // Create Subscription Packages
+  const packages = [
+    {
+      name: 'Daily Milk Subscription',
+      description: 'Get fresh milk delivered to your doorstep every morning.',
+      frequency: 'DAILY',
+      price: 0, // Pay per delivery calculation usually, or monthly
+      features: JSON.stringify(['Free Delivery', 'Morning 6-8 AM', 'Pause Anytime']),
+      imageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400'
+    },
+    {
+      name: 'Alternate Day Milk',
+      description: 'Milk delivery every alternate day.',
+      frequency: 'ALTERNATE_DAYS',
+      price: 0,
+      features: JSON.stringify(['Flexible Schedule', 'Morning 6-8 AM']),
+      imageUrl: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400'
+    }
+  ];
+
+  for (const pkg of packages) {
+    const existing = await prisma.subscriptionPackage.findFirst({ where: { name: pkg.name } });
+    if (!existing) {
+      await prisma.subscriptionPackage.create({ data: pkg });
+    }
+  }
+  console.log(`✅ Seeded subscription packages`);
+
+  // Get products for creating sample orders (Recommendation data)
   const allProducts = await prisma.product.findMany();
-  
+
   // Create a sample address for the customer
   const customerAddress = await prisma.address.upsert({
     where: { id: 'sample-address-1' },
@@ -141,79 +169,44 @@ async function main() {
     create: {
       id: 'sample-address-1',
       userId: customer.id,
-      name: 'Test Customer',
+      name: 'Ravi Kumar',
       phone: '9876543210',
-      addressLine1: '123 Main Street',
-      city: 'Mumbai',
+      addressLine1: 'Flat 402, Hazare Heights',
+      city: 'Pune',
       state: 'Maharashtra',
-      pincode: '400001',
+      pincode: '411001',
       isDefault: true,
     },
   });
   console.log('✅ Created sample address');
 
-  // Create sample orders to generate recommendation data
-  const sampleOrders = [
-    // Order 1: Apples, Bananas, Oranges (frequently bought together)
-    {
-      products: ['Fresh Apples', 'Organic Bananas', 'Fresh Oranges'],
-    },
-    // Order 2: Apples, Bananas, Strawberries
-    {
-      products: ['Fresh Apples', 'Organic Bananas', 'Seasonal Strawberries'],
-    },
-    // Order 3: Mango, Dragon Fruit, Watermelon (exotic/seasonal)
-    {
-      products: ['Exotic Mango', 'Dragon Fruit', 'Watermelon'],
-    },
-    // Order 4: Avocado, Bananas, Apples
-    {
-      products: ['Organic Avocado', 'Organic Bananas', 'Fresh Apples'],
-    },
-    // Order 5: Apples, Oranges (repeat order)
-    {
-      products: ['Fresh Apples', 'Fresh Oranges'],
-    },
-  ];
+  // Create sample orders
+  // Order 1: Milk & Curd
+  const milk1L = allProducts.find(p => p.name === 'Cow Milk (1L)');
+  const curd = allProducts.find(p => p.name === 'Fresh Curd (500g)');
 
-  let orderCount = 0;
-  for (const orderData of sampleOrders) {
-    const orderProducts = allProducts.filter(p => orderData.products.includes(p.name));
-    if (orderProducts.length === 0) continue;
-
-    const totalAmount = orderProducts.reduce((sum, p) => sum + p.price, 0);
-    const orderNumber = `ORD-${Date.now()}-${orderCount}`;
-
-    const existingOrder = await prisma.order.findFirst({
-      where: { orderNumber },
+  if (milk1L && curd) {
+    await prisma.order.create({
+      data: {
+        userId: customer.id,
+        addressId: customerAddress.id,
+        orderNumber: `ORD-${Date.now()}`,
+        totalAmount: milk1L.price + curd.price,
+        status: 'DELIVERED',
+        paymentStatus: 'PAID',
+        items: {
+          create: [
+            { productId: milk1L.id, quantity: 1, price: milk1L.price },
+            { productId: curd.id, quantity: 1, price: curd.price }
+          ]
+        }
+      }
     });
-
-    if (!existingOrder) {
-      await prisma.order.create({
-        data: {
-          userId: customer.id,
-          addressId: customerAddress.id,
-          orderNumber,
-          totalAmount,
-          status: 'DELIVERED',
-          paymentStatus: 'PAID',
-          items: {
-            create: orderProducts.map(p => ({
-              productId: p.id,
-              quantity: 1,
-              price: p.price,
-            })),
-          },
-        },
-      });
-      orderCount++;
-    }
   }
-  console.log(`✅ Created ${orderCount} sample orders for recommendations`);
 
   console.log('🎉 Seeding completed!');
   console.log('\n📝 Test Credentials:');
-  console.log('Admin: admin@fruitland.com / admin123');
+  console.log('Admin: admin@hazaredairy.com / admin123');
   console.log('Customer: customer@example.com / customer123');
 }
 

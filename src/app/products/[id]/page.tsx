@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Navbar } from '@/components/navbar';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ReviewList } from '@/components/review-list';
@@ -15,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Loader2, ShoppingCart, ArrowLeft, MessageSquare, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
+import { fetchPublicUiConfig } from '@/lib/public-ui-config';
 
 interface Product {
   id: string;
@@ -45,10 +45,16 @@ export default function ProductDetailPage({
   const [product, setProduct] = useState<Product | null>(null);
   const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showStockOnProductPages, setShowStockOnProductPages] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
+
+  const loadPublicUiConfig = useCallback(async () => {
+    const cfg = await fetchPublicUiConfig();
+    setShowStockOnProductPages(cfg.showStockOnProductPages);
+  }, []);
 
   const fetchProduct = useCallback(async () => {
     try {
@@ -81,13 +87,13 @@ export default function ProductDetailPage({
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchProduct(), fetchReviewStats()]);
+      await Promise.all([fetchProduct(), fetchReviewStats(), loadPublicUiConfig()]);
       setLoading(false);
     };
     if (productId) {
       loadData();
     }
-  }, [productId, fetchProduct, fetchReviewStats]);
+  }, [productId, fetchProduct, fetchReviewStats, loadPublicUiConfig]);
 
   const handleQuantityChange = (delta: number) => {
     const newQuantity = quantity + delta;
@@ -223,7 +229,7 @@ export default function ProductDetailPage({
               </span>
               <p className="text-sm text-gray-500 mt-1">
                 {product.stock > 0
-                  ? `${product.stock} items in stock`
+                  ? (showStockOnProductPages ? `${product.stock} items in stock` : 'Available')
                   : 'Out of stock'}
               </p>
             </div>

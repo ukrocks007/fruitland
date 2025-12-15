@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ShoppingCart, User, LogOut, Package, Settings, Truck, Building2 } from 'lucide-react';
+import Image from 'next/image';
 import { Role } from '@/types';
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -51,8 +52,20 @@ export function Navbar() {
   return (
     <nav className="border-b bg-white sticky top-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="text-2xl font-bold text-green-600">
-          🍎 Fruitland
+        <Link href="/" className="group flex items-center gap-3">
+          <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden ring-1 ring-blue-100 shadow-sm shrink-0">
+            <Image
+              src="/hazare-logo.png"
+              alt="Hazare Dairy Farm logo"
+              width={128}
+              height={128}
+              className="object-cover w-full h-full"
+            />
+          </div>
+          <div className="leading-tight">
+            <span className="text-lg md:text-2xl font-extrabold text-blue-600 block">Hazare Dairy Farm</span>
+            <span className="text-xs md:text-sm text-gray-500 block -mt-0.5">Fresh dairy &amp; produce</span>
+          </div>
         </Link>
 
         <div className="hidden md:flex items-center space-x-6">
@@ -77,8 +90,8 @@ export function Navbar() {
             <Button variant="ghost" size="icon" className="relative">
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
-                <Badge 
-                  variant="destructive" 
+                <Badge
+                  variant="destructive"
                   className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
                 >
                   {cartCount}
@@ -104,7 +117,7 @@ export function Navbar() {
                   </Button>
                 </Link>
               )}
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon">

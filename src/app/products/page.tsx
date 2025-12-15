@@ -8,7 +8,8 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ThermometerSnowflake, Clock, Droplet } from 'lucide-react';
+import { fetchPublicUiConfig } from '@/lib/public-ui-config';
 
 interface Product {
   id: string;
@@ -20,6 +21,9 @@ interface Product {
   stock: number;
   isAvailable: boolean;
   isSeasonal: boolean;
+  fatPercentage?: number;
+  shelfLifeDays?: number;
+  isRefrigerated?: boolean;
 }
 
 export default function ProductsPage() {
@@ -28,7 +32,8 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const categories = ['all', 'fresh', 'seasonal', 'organic', 'exotic'];
+  const [showStockOnProductPages, setShowStockOnProductPages] = useState(true);
+  const categories = ['all', 'MILK', 'CURD', 'PANEER', 'GHEE', 'BUTTER'];
 
   useEffect(() => {
     // Get category from URL
@@ -36,6 +41,7 @@ export default function ProductsPage() {
     const category = params.get('category') || 'all';
     setSelectedCategory(category);
     fetchProducts(category);
+    fetchPublicUiConfig().then((cfg) => setShowStockOnProductPages(cfg.showStockOnProductPages));
   }, []);
 
   const fetchProducts = async (category?: string) => {
@@ -98,7 +104,7 @@ export default function ProductsPage() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-8">Our Products</h1>
+        <h1 className="text-4xl font-bold mb-8 text-blue-900">Farm Fresh Dairy Products</h1>
 
         {/* Category Filter */}
         <div className="flex flex-wrap gap-2 mb-8">
@@ -106,10 +112,10 @@ export default function ProductsPage() {
             <Badge
               key={cat}
               variant={selectedCategory === cat ? 'default' : 'outline'}
-              className="cursor-pointer capitalize px-4 py-2 hover:bg-green-600 hover:text-white"
+              className={`cursor-pointer capitalize px-4 py-2 ${selectedCategory === cat ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-100 hover:text-blue-800'}`}
               onClick={() => handleCategoryClick(cat)}
             >
-              {cat}
+              {cat.toLowerCase()}
             </Badge>
           ))}
         </div>
@@ -122,45 +128,70 @@ export default function ProductsPage() {
         ) : products.length > 0 ? (
           <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.map((product) => (
-              <Card key={product.id} className="overflow-hidden hover:shadow-lg transition cursor-pointer" onClick={() => router.push(`/products/${product.id}`)}>
-                <div className="relative h-48 w-full bg-gray-200">
+              <Card key={product.id} className="overflow-hidden hover:shadow-lg transition cursor-pointer border-blue-100" onClick={() => router.push(`/products/${product.id}`)}>
+                <div className="relative h-48 w-full bg-blue-50">
                   <Image
                     src={product.image}
                     alt={product.name}
                     fill
                     className="object-cover"
                   />
-                  {product.isSeasonal && (
-                    <Badge className="absolute top-2 right-2 bg-yellow-500">
-                      Seasonal
-                    </Badge>
-                  )}
+                  {/* Badges */}
+                  <div className="absolute top-2 right-2 flex flex-col gap-1">
+                    {product.isRefrigerated && (
+                      <Badge className="bg-cyan-500 text-white flex gap-1 items-center shadow-sm">
+                        <ThermometerSnowflake className="w-3 h-3" /> Chilled
+                      </Badge>
+                    )}
+                    {product.isSeasonal && (
+                      <Badge className="bg-yellow-500 text-white shadow-sm">
+                        Seasonal
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <CardHeader
-                  className="cursor-pointer"
+                  className="cursor-pointer pb-2"
                   onClick={() => router.push(`/products/${product.id}`)}
                 >
-                  <CardTitle className="text-lg">{product.name}</CardTitle>
-                  <CardDescription className="line-clamp-2">
+                  <CardTitle className="text-lg text-blue-900">{product.name}</CardTitle>
+                  <CardDescription className="line-clamp-2 text-sm">
                     {product.description}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-center">
-                    <span className="text-2xl font-bold text-green-600">
+                <CardContent className="pb-2">
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {product.fatPercentage !== null && product.fatPercentage !== undefined && (
+                      <div className="flex items-center text-xs text-gray-500 bg-blue-50 px-2 py-1 rounded-full">
+                        <Droplet className="w-3 h-3 mr-1 text-blue-500" />
+                        Fat: {product.fatPercentage}%
+                      </div>
+                    )}
+                    {product.shelfLifeDays !== null && product.shelfLifeDays !== undefined && (
+                      <div className="flex items-center text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                        <Clock className="w-3 h-3 mr-1 text-gray-500" />
+                        Shelf: {product.shelfLifeDays}d
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-2xl font-bold text-blue-700">
                       ₹{product.price}
                     </span>
-                    <Badge variant="outline" className="capitalize">
+                    <Badge variant="secondary" className="uppercase text-xs bg-blue-100 text-blue-700 hover:bg-blue-200">
                       {product.category}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600 mt-2">
-                    Stock: {product.stock} available
-                  </p>
+                  {showStockOnProductPages && (
+                    <p className="text-sm text-gray-500 mt-2">
+                      Stock: {product.stock} available
+                    </p>
+                  )}
                 </CardContent>
                 <CardFooter>
                   <Button
-                    className="w-full"
+                    className="w-full bg-blue-600 hover:bg-blue-700"
                     onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                     disabled={product.stock === 0 || addingToCart[product.id]}
                   >

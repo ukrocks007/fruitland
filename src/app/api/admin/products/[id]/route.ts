@@ -26,6 +26,9 @@ export async function PATCH(
     if (body.stock !== undefined) updateData.stock = parseInt(body.stock);
     if (body.image !== undefined) updateData.image = body.image;
     if (body.isAvailable !== undefined) updateData.isAvailable = body.isAvailable;
+    if (body.fatPercentage !== undefined) updateData.fatPercentage = parseFloat(body.fatPercentage);
+    if (body.shelfLifeDays !== undefined) updateData.shelfLifeDays = parseInt(body.shelfLifeDays);
+    if (body.isRefrigerated !== undefined) updateData.isRefrigerated = body.isRefrigerated;
 
     const product = await prisma.product.update({
       where: { id },
