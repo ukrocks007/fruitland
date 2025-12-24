@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Role } from '@/types';
+import { getTenantBySlug } from '@/lib/tenant';
 
 // GET all products or filter by category
 export async function GET(request: NextRequest) {
@@ -10,8 +11,21 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const available = searchParams.get('available');
+    const tenantSlug = searchParams.get('tenantSlug');
 
     const where: any = {};
+    
+    // If tenantSlug is provided, filter by tenant
+    if (tenantSlug) {
+      const tenant = await getTenantBySlug(tenantSlug);
+      if (!tenant) {
+        return NextResponse.json(
+          { error: 'Tenant not found' },
+          { status: 404 }
+        );
+      }
+      where.tenantId = tenant.id;
+    }
     
     if (category) {
       where.category = category;
@@ -50,6 +64,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get user's tenantId
+    if (!session.user.tenantId) {
+      return NextResponse.json(
+        { error: 'User is not associated with a tenant' },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const { name, description, price, image, category, stock, isAvailable, isSeasonal } = body;
 
@@ -62,6 +84,7 @@ export async function POST(request: NextRequest) {
 
     const product = await prisma.product.create({
       data: {
+        tenantId: session.user.tenantId,
         name,
         description,
         price,

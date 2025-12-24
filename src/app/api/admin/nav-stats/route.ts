@@ -1,17 +1,53 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@/types';
+import { getTenantBySlug, validateTenantAccess } from '@/lib/tenant';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {
+        // Get tenantSlug from query params
+        const { searchParams } = new URL(request.url);
+        const tenantSlug = searchParams.get('tenantSlug');
+
+        let tenantId: string | undefined;
+
+        if (tenantSlug) {
+            const tenant = await getTenantBySlug(tenantSlug);
+            if (!tenant) {
+                return NextResponse.json(
+                    { error: 'Tenant not found' },
+                    { status: 404 }
+                );
+            }
+
+            // Validate tenant access
+            if (!validateTenantAccess(session.user.role, session.user.tenantId, tenant.id)) {
+                return NextResponse.json(
+                    { error: 'Access denied to this tenant' },
+                    { status: 403 }
+                );
+            }
+
+            tenantId = tenant.id;
+        } else if (session.user.tenantId) {
+            tenantId = session.user.tenantId;
+        }
+
+        // Build per-model filters respecting schema relations
+        const orderWhere: any = tenantId ? { tenantId } : {};
+        const reviewWhere: any = tenantId ? { tenantId } : {};
+        const productWhere: any = tenantId ? { tenantId } : {};
+        // Refunds do not have tenantId directly; filter via related order
+        const refundWhere: any = tenantId ? { order: { tenantId } } : {};
+
         const [
             pendingOrders,
             pendingBulkOrders,
@@ -21,28 +57,33 @@ export async function GET() {
         ] = await Promise.all([
             prisma.order.count({
                 where: {
+                    ...orderWhere,
                     status: 'PENDING',
                     isBulkOrder: false,
                 },
             }),
             prisma.order.count({
                 where: {
+                    ...orderWhere,
                     isBulkOrder: true,
                     bulkOrderStatus: 'PENDING_APPROVAL',
                 },
             }),
             prisma.refund.count({
                 where: {
+                    ...refundWhere,
                     status: 'REQUESTED',
                 },
             }),
             prisma.review.count({
                 where: {
+                    ...reviewWhere,
                     status: 'PENDING',
                 },
             }),
             prisma.product.count({
                 where: {
+                    ...productWhere,
                     stock: {
                         lt: 10,
                     },

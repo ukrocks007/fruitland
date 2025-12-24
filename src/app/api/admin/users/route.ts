@@ -3,13 +3,27 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@/types';
+import { getTenantBySlug } from '@/lib/tenant';
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { searchParams } = new URL(request.url);
+    const tenantSlug = searchParams.get('tenantSlug') || request.headers.get('x-tenant-slug') || undefined;
+
+    // Determine tenant scope
+    let tenantId: string | undefined = undefined;
+    if (session.user.role === Role.ADMIN) {
+      tenantId = session.user.tenantId ?? undefined;
+    } else if (session.user.role === Role.SUPERADMIN) {
+      if (tenantSlug) {
+        const tenant = await getTenantBySlug(tenantSlug);
+        tenantId = tenant?.id;
+      }
     }
 
     const users = await prisma.user.findMany({
@@ -18,6 +32,7 @@ export async function GET(request: NextRequest) {
         name: true,
         email: true,
         role: true,
+        tenantId: true,
         createdAt: true,
         _count: {
           select: {
@@ -26,6 +41,17 @@ export async function GET(request: NextRequest) {
           },
         },
       },
+      where: tenantId
+        ? {
+            OR: [
+              { addresses: { some: { tenantId } } },
+              { orders: { some: { tenantId } } },
+              { subscriptions: { some: { tenantId } } },
+              { cartItems: { some: { tenantId } } },
+              { reviews: { some: { tenantId } } },
+            ],
+          }
+        : undefined,
       orderBy: {
         createdAt: 'desc',
       },

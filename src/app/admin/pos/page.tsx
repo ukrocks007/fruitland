@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
+import { useTenant } from '@/lib/useTenant';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,6 +73,8 @@ interface OrderResult {
 export default function AdminPOSPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { tenant } = useTenant();
+  const tenantSlug = tenant?.slug || '';
   const searchInputRef = useRef<HTMLInputElement>(null);
   
   // State
@@ -282,7 +285,7 @@ export default function AdminPOSPage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Navbar />
+      <Navbar tenantSlug={tenantSlug} />
       
       <div className="container mx-auto px-4 py-4">
         <AdminNavigation />

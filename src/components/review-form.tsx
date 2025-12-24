@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,8 @@ interface ReviewFormProps {
 }
 
 export function ReviewForm({ productId, productName, onSuccess, onCancel }: ReviewFormProps) {
+  const params = useParams();
+  const tenantSlug = (params?.tenantSlug as string) || '';
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState('');
   const [comment, setComment] = useState('');
@@ -38,7 +41,7 @@ export function ReviewForm({ productId, productName, onSuccess, onCancel }: Revi
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`/api/products/${productId}/reviews`, {
+      const response = await fetch(`/api/products/${productId}/reviews?tenantSlug=${encodeURIComponent(tenantSlug)}` , {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

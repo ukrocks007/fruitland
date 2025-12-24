@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ReviewStatus, OrderStatus, PaymentStatus } from '@/types';
+import { getTenantBySlug } from '@/lib/tenant';
 
 // GET approved reviews for a product
 export async function GET(
@@ -133,6 +134,38 @@ export async function POST(
       );
     }
 
+    const tenantSlug = request.nextUrl.searchParams.get('tenantSlug') || request.headers.get('x-tenant-slug') || undefined;
+    if (!tenantSlug) {
+      return NextResponse.json(
+        { error: 'tenantSlug is required' },
+        { status: 400 }
+      );
+    }
+    const tenant = await getTenantBySlug(tenantSlug);
+    if (!tenant) {
+      return NextResponse.json(
+        { error: 'Invalid tenantSlug' },
+        { status: 404 }
+      );
+    }
+
+    // Check if user is associated with this tenant via UserTenant table
+    const userTenant = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: session.user.id,
+          tenantId: tenant.id,
+        },
+      },
+    });
+
+    if (!userTenant) {
+      return NextResponse.json(
+        { error: 'User-tenant mismatch or not associated with tenant' },
+        { status: 403 }
+      );
+    }
+
     const { id: productId } = await params;
     const body = await request.json();
     const { rating, title, comment } = body;
@@ -167,8 +200,11 @@ export async function POST(
     }
 
     // Verify product exists
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
+    const product = await prisma.product.findFirst({
+      where: { 
+        id: productId,
+        tenantId: tenant.id,
+      },
     });
 
     if (!product) {
@@ -181,9 +217,10 @@ export async function POST(
     // Check if user has already reviewed this product
     const existingReview = await prisma.review.findUnique({
       where: {
-        productId_userId: {
+        productId_userId_tenantId: {
           productId,
           userId: session.user.id,
+          tenantId: tenant.id,
         },
       },
     });
@@ -199,6 +236,7 @@ export async function POST(
     const hasPurchased = await prisma.order.findFirst({
       where: {
         userId: session.user.id,
+        tenantId: tenant.id,
         status: OrderStatus.DELIVERED,
         paymentStatus: PaymentStatus.PAID,
         items: {
@@ -214,6 +252,7 @@ export async function POST(
       data: {
         productId,
         userId: session.user.id,
+        tenantId: tenant.id,
         rating,
         title: title?.trim() || null,
         comment: comment.trim(),

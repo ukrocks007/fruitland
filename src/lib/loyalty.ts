@@ -81,15 +81,25 @@ export async function awardLoyaltyPoints(
   const settings = await getLoyaltySettings();
   const pointsEarned = calculatePointsToEarn(orderAmount, settings.pointsPerRupee);
 
+  // Get user's tenantId
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { pointsBalance: true, loyaltyTier: true, tenantId: true },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  if (!user.tenantId) {
+    throw new Error('User is not associated with a tenant');
+  }
+
   if (pointsEarned <= 0) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { pointsBalance: true, loyaltyTier: true },
-    });
     return {
       pointsEarned: 0,
-      newBalance: user?.pointsBalance || 0,
-      newTier: user?.loyaltyTier || LoyaltyTier.BASIC,
+      newBalance: user.pointsBalance || 0,
+      newTier: user.loyaltyTier || LoyaltyTier.BASIC,
     };
   }
 
@@ -97,6 +107,7 @@ export async function awardLoyaltyPoints(
   const totalEarned = await prisma.loyaltyTransaction.aggregate({
     where: {
       userId,
+      tenantId: user.tenantId,
       type: LoyaltyTransactionType.EARN,
     },
     _sum: {
@@ -108,7 +119,7 @@ export async function awardLoyaltyPoints(
   const newTier = determineLoyaltyTier(newTotalEarned, settings.silverTierThreshold, settings.goldTierThreshold);
 
   // Update user's points and tier, create transaction
-  const [user] = await prisma.$transaction([
+  const [updatedUser] = await prisma.$transaction([
     prisma.user.update({
       where: { id: userId },
       data: {
@@ -119,6 +130,7 @@ export async function awardLoyaltyPoints(
     prisma.loyaltyTransaction.create({
       data: {
         userId,
+        tenantId: user.tenantId,
         orderId,
         type: LoyaltyTransactionType.EARN,
         points: pointsEarned,
@@ -133,8 +145,8 @@ export async function awardLoyaltyPoints(
 
   return {
     pointsEarned,
-    newBalance: user.pointsBalance,
-    newTier: user.loyaltyTier,
+    newBalance: updatedUser.pointsBalance,
+    newTier: updatedUser.loyaltyTier,
   };
 }
 
@@ -161,7 +173,7 @@ export async function redeemLoyaltyPoints(
   // Get current balance
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { pointsBalance: true },
+    select: { pointsBalance: true, tenantId: true },
   });
 
   if (!user) {
@@ -170,6 +182,15 @@ export async function redeemLoyaltyPoints(
       discount: 0,
       newBalance: 0,
       error: 'User not found',
+    };
+  }
+
+  if (!user.tenantId) {
+    return {
+      success: false,
+      discount: 0,
+      newBalance: 0,
+      error: 'User is not associated with a tenant',
     };
   }
 
@@ -195,6 +216,7 @@ export async function redeemLoyaltyPoints(
     prisma.loyaltyTransaction.create({
       data: {
         userId,
+        tenantId: user.tenantId,
         orderId,
         type: LoyaltyTransactionType.REDEEM,
         points: pointsToRedeem,

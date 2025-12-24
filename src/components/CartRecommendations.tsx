@@ -56,7 +56,8 @@ export function CartRecommendations({
   title = 'Customers also bought',
   limit = 4,
   onAddToCart,
-}: CartRecommendationsProps) {
+  tenantSlug,
+}: CartRecommendationsProps & { tenantSlug: string }) {
   const [recommendations, setRecommendations] = useState<RecommendedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState<Record<string, boolean>>({});
@@ -71,7 +72,7 @@ export function CartRecommendations({
 
       try {
         setLoading(true);
-        const response = await fetch('/api/cart/recommendations', {
+        const response = await fetch(`/api/cart/recommendations?tenantSlug=${tenantSlug}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ productIds: cartProductIds, limit }),
@@ -94,7 +95,7 @@ export function CartRecommendations({
   const addToCart = async (product: RecommendedProduct) => {
     setAddingToCart(prev => ({ ...prev, [product.id]: true }));
     try {
-      const res = await fetch('/api/cart', {
+      const res = await fetch(`/api/cart?tenantSlug=${tenantSlug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -143,7 +144,7 @@ export function CartRecommendations({
   return (
     <div className="mt-8">
       <h3 className="text-lg font-semibold mb-4">{title}</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1">
         {recommendations.map((product) => {
           const reasonInfo = reasonTagLabels[product.reasonTag] || {
             label: 'Add-on',

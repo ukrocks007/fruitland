@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Role } from '@/types';
+import { getTenantBySlug, validateTenantAccess } from '@/lib/tenant';
 
 // GET single product
 export async function GET(
@@ -11,8 +12,38 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const product = await prisma.product.findUnique({
-      where: { id },
+    const tenantSlug = request.nextUrl.searchParams.get('tenantSlug');
+
+    if (!tenantSlug) {
+      // Fallback for non-tenant-aware requests (backwards compatibility)
+      const product = await prisma.product.findUnique({
+        where: { id },
+      });
+
+      if (!product) {
+        return NextResponse.json(
+          { error: 'Product not found' },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json(product);
+    }
+
+    // Tenant-aware request
+    const tenant = await getTenantBySlug(tenantSlug);
+    if (!tenant || !tenant.isActive) {
+      return NextResponse.json(
+        { error: 'Tenant not found or inactive' },
+        { status: 404 }
+      );
+    }
+
+    const product = await prisma.product.findFirst({
+      where: {
+        id,
+        tenantId: tenant.id,
+      },
     });
 
     if (!product) {
@@ -40,7 +71,7 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -50,6 +81,29 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
     const { name, description, price, image, category, stock, isAvailable, isSeasonal } = body;
+
+    // Get product to check tenant
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+      select: { tenantId: true },
+    });
+
+    if (!existingProduct) {
+      return NextResponse.json(
+        { error: 'Product not found' },
+        { status: 404 }
+      );
+    }
+
+    // Validate tenant access
+    if (session.user.role !== Role.SUPERADMIN) {
+      if (!validateTenantAccess(session.user.role, session.user.tenantId, existingProduct.tenantId)) {
+        return NextResponse.json(
+          { error: 'Access denied' },
+          { status: 403 }
+        );
+      }
+    }
 
     const product = await prisma.product.update({
       where: { id },
@@ -83,7 +137,7 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== Role.ADMIN) {
+    if (!session || (session.user.role !== Role.ADMIN && session.user.role !== Role.SUPERADMIN)) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -91,6 +145,30 @@ export async function DELETE(
     }
 
     const { id } = await params;
+
+    // Get product to check tenant
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+      select: { tenantId: true },
+    });
+
+    if (!existingProduct) {
+      return NextResponse.json(
+        { error: 'Product not found' },
+        { status: 404 }
+      );
+    }
+
+    // Validate tenant access
+    if (session.user.role !== Role.SUPERADMIN) {
+      if (!validateTenantAccess(session.user.role, session.user.tenantId, existingProduct.tenantId)) {
+        return NextResponse.json(
+          { error: 'Access denied' },
+          { status: 403 }
+        );
+      }
+    }
+
     await prisma.product.delete({
       where: { id },
     });

@@ -22,120 +22,133 @@ import {
   TrendingUp,
 } from 'lucide-react';
 
-const navItems = [
+const baseNavItems = [
   {
-    href: '/admin/pos',
+    path: 'pos',
     label: 'POS',
     icon: Store,
     variant: 'outline' as const,
     className: 'bg-green-600 hover:bg-green-700 text-white border-green-600',
   },
   {
-    href: '/admin/orders',
+    path: 'orders',
     label: 'Orders',
     icon: ShoppingCart,
     variant: 'outline' as const,
   },
   {
-    href: '/admin/bulk-orders',
+    path: 'bulk-orders',
     label: 'Bulk Orders',
     icon: Building2,
     variant: 'outline' as const,
   },
   {
-    href: '/admin/refunds',
+    path: 'refunds',
     label: 'Refunds',
     icon: RotateCcw,
     variant: 'outline' as const,
   },
   {
-    href: '/admin/analytics',
+    path: 'analytics',
     label: 'Analytics',
     icon: BarChart3,
     variant: 'outline' as const,
   },
   {
-    href: '/admin/analytics-advanced',
+    path: 'analytics-advanced',
     label: 'Advanced',
     icon: TrendingUp,
     variant: 'outline' as const,
   },
   {
-    href: '/admin/forecasting',
+    path: 'forecasting',
     label: 'Forecasting',
     icon: TrendingUp,
     variant: 'outline' as const,
   },
   {
-    href: '/admin/subscriptions',
+    path: 'subscriptions',
     label: 'Subscriptions',
     icon: Package,
     variant: 'outline' as const,
   },
   {
-    href: '/admin/subscription-packages',
+    path: 'subscription-packages',
     label: 'Packages',
     icon: Package,
     variant: 'outline' as const,
   },
   {
-    href: '/admin/warehouses',
+    path: 'warehouses',
     label: 'Warehouses',
     icon: Warehouse,
     variant: 'outline' as const,
   },
   {
-    href: '/admin/inventory-warehouse',
+    path: 'inventory-warehouse',
     label: 'Inventory',
     icon: Boxes,
     variant: 'outline' as const,
   },
   {
-    href: '/admin/delivery-agents',
+    path: 'delivery-agents',
     label: 'Delivery Fleet',
     icon: Truck,
     variant: 'outline' as const,
   },
   {
-    href: '/admin/users',
+    path: 'users',
     label: 'Users',
     icon: Users,
     variant: 'outline' as const,
   },
   {
-    href: '/admin/products',
+    path: 'products',
     label: 'Products',
     icon: LayoutDashboard,
     variant: 'outline' as const,
   },
   {
-    href: '/admin/export',
+    path: 'export',
     label: 'Export',
     icon: Download,
     variant: 'outline' as const,
   },
   {
-    href: '/admin/reviews',
+    path: 'reviews',
     label: 'Reviews',
     icon: MessageSquare,
     variant: 'outline' as const,
   },
   {
-    href: '/admin/settings',
+    path: 'settings',
     label: 'Settings',
     icon: Settings,
     variant: 'outline' as const,
   },
 ];
 
-export function AdminNavigation() {
+interface AdminNavigationProps {
+  tenantSlug?: string;
+}
+
+export function AdminNavigation({ tenantSlug }: AdminNavigationProps = {}) {
   const pathname = usePathname();
   const [stats, setStats] = useState<Record<string, number>>({});
+
+  // Build navigation items with tenant-aware hrefs
+  const navItems = baseNavItems.map(item => ({
+    ...item,
+    href: tenantSlug ? `/${tenantSlug}/admin/${item.path}` : `/admin/${item.path}`,
+  }));
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('/api/admin/nav-stats');
+        const url = tenantSlug 
+          ? `/api/admin/nav-stats?tenantSlug=${tenantSlug}`
+          : '/api/admin/nav-stats';
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
           if (data && typeof data === 'object' && !data.error) {
@@ -156,15 +169,15 @@ export function AdminNavigation() {
     // Refresh stats every minute
     const interval = setInterval(fetchStats, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [tenantSlug]);
 
-  const getBadgeCount = (href: string) => {
-    switch (href) {
-      case '/admin/orders': return stats.orders;
-      case '/admin/bulk-orders': return stats.bulkOrders;
-      case '/admin/refunds': return stats.refunds;
-      case '/admin/reviews': return stats.reviews;
-      case '/admin/inventory-warehouse': return stats.inventory;
+  const getBadgeCount = (path: string) => {
+    switch (path) {
+      case 'orders': return stats.orders;
+      case 'bulk-orders': return stats.bulkOrders;
+      case 'refunds': return stats.refunds;
+      case 'reviews': return stats.reviews;
+      case 'inventory-warehouse': return stats.inventory;
       default: return 0;
     }
   };
@@ -176,7 +189,7 @@ export function AdminNavigation() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
-          const count = getBadgeCount(item.href);
+          const count = getBadgeCount(item.path);
 
           return (
             <Button

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/navbar';
+import { useTenant } from '@/lib/useTenant';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,8 @@ interface WarehouseFormData {
 }
 
 export default function AdminWarehousesPage() {
+  const { tenant } = useTenant();
+  const tenantSlug = tenant?.slug || "";
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [filteredWarehouses, setFilteredWarehouses] = useState<WarehouseData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -243,7 +246,7 @@ export default function AdminWarehousesPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <Navbar tenantSlug={tenantSlug} />
         <div className="container mx-auto px-4 py-8 flex justify-center items-center">
           <Loader2 className="h-8 w-8 animate-spin text-green-600" />
         </div>
@@ -253,7 +256,7 @@ export default function AdminWarehousesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar tenantSlug={tenantSlug} />
 
       <div className="container mx-auto px-4 py-8">
         <AdminNavigation />

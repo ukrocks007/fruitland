@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,8 @@ interface ReviewListProps {
 }
 
 export function ReviewList({ productId }: ReviewListProps) {
+  const params = useParams();
+  const tenantSlug = (params?.tenantSlug as string) || '';
   const [reviews, setReviews] = useState<Review[]>([]);
   const [stats, setStats] = useState<ReviewStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,7 +26,7 @@ export function ReviewList({ productId }: ReviewListProps) {
   const fetchReviews = useCallback(async (pageNum: number) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/products/${productId}/reviews?page=${pageNum}&limit=5`);
+      const response = await fetch(`/api/products/${productId}/reviews?tenantSlug=${encodeURIComponent(tenantSlug)}&page=${pageNum}&limit=5`);
       if (response.ok) {
         const data = await response.json();
         setReviews(data.reviews);
@@ -35,7 +38,7 @@ export function ReviewList({ productId }: ReviewListProps) {
     } finally {
       setLoading(false);
     }
-  }, [productId]);
+  }, [productId, tenantSlug]);
 
   useEffect(() => {
     fetchReviews(page);
